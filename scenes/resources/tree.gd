@@ -8,6 +8,11 @@ const MAX_WOOD := 44.0
 const VARIANCE := 0.7
 const MAX_HITS := 8
 
+const TREE_MODELS := [
+	"res://assets/models/kaykit_props/nature/tree_single_A.gltf",
+	"res://assets/models/kaykit_props/nature/tree_single_B.gltf",
+]
+
 var wood_left: float = MAX_WOOD
 var falling: bool = false
 
@@ -30,6 +35,16 @@ func _build_visual() -> void:
 	add_child(_visual)
 
 	_trunk_height = randf_range(2.6, 3.4)
+
+	# Real KayKit tree model (with procedural trunk/canopy as fallback).
+	var total_h := _trunk_height + 1.4
+	var model := KayKitProp.create(_visual, TREE_MODELS[randi() % TREE_MODELS.size()], 1.0)
+	if model != null:
+		KayKitProp.scale_to_height(model, total_h)
+		Builder.collider(self, Builder.box_shape(Vector3(0.6, total_h, 0.6)))
+		var cs := get_child(get_child_count() - 1) as CollisionShape3D
+		cs.position = Vector3(0, total_h * 0.45, 0)
+		return
 
 	# Tapered trunk (wider at the base).
 	var trunk := Builder.cylinder(0.24, _trunk_height, GameData.COLOR_TREE_TRUNK)

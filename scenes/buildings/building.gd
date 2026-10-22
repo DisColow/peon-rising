@@ -10,6 +10,15 @@ const TOWER_RANGE := 10.0
 const TOWER_COOLDOWN := 1.4
 const TOWER_DAMAGE := 14.0
 
+# KayKit (CC0) building models, one per team color.
+const PROP_DIR := "res://assets/models/kaykit_props/buildings_%s/"
+const BUILDING_MODEL := {
+	"town_hall": "building_castle_%s.gltf",
+	"farm": "building_home_A_%s.gltf",
+	"barracks": "building_barracks_%s.gltf",
+	"tower": "building_tower_A_%s.gltf",
+}
+
 var building_key: String = "farm"
 var team: String = GameData.TEAM_PLAYER
 var max_hp: float = 400.0
@@ -87,7 +96,20 @@ func _ghost_mat(color: Color) -> StandardMaterial3D:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	return m
 
+func _kaykit_model_path() -> String:
+	var col := "green" if team == GameData.TEAM_PLAYER else "red"
+	var f: String = BUILDING_MODEL.get(building_key, "")
+	if f == "":
+		return ""
+	return PROP_DIR % col + f % col
+
 func _build_solid_visual(root: Node3D, color: Color, s: Vector3) -> void:
+	var path := _kaykit_model_path()
+	if path != "":
+		var model := KayKitProp.create(root, path, 1.0)
+		if model != null:
+			KayKitProp.scale_to_height(model, s.y)
+			return
 	var wood := GameData.COLOR_WOOD_STACK
 	var stone := GameData.COLOR_ROCK
 	var team_col := Color(0.25, 0.4, 0.8) if team == GameData.TEAM_PLAYER else Color(0.82, 0.24, 0.2)

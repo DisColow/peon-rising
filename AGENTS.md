@@ -89,6 +89,19 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `assets/models/` contient aussi les GLB de référence `CesiumMan.glb` (CC-BY) et
   `Fox.glb` (CC0). Voir `CREDITS.md`.
 
+## Monde / bâtiments / nature (KayKit, CC0)
+
+- `assets/models/kaykit_props/` : modèles KayKit « Medieval Hexagon Pack »
+  (`buildings_green/`, `buildings_red/`, `nature/`, `props/`) — un `.gltf` + `.bin`
+  + `hexagons_medieval.png` par dossier (les `.gltf` référencent leur texture en
+  chemin relatif, il faut donc préserver la structure par sous-dossier).
+- `scripts/kaykit_prop.gd` (`class_name KayKitProp`) charge un prop statique et lui
+  applique le même cel-shader que les personnages (`KayKitProp.create()`), avec
+  `node_height()` / `scale_to_height()` pour dimensionner sur la hauteur cible.
+- Intégré : `building.gd` (castle/home_A/barracks/tower_A vert vs rouge selon
+  l'équipe), `tree.gd` (tree_single_A/B), `gold_mine.gd` (building_mine). Le code
+  procédural reste en **fallback** si le modèle ne charge pas.
+
 ## Captures hors-écran (preuve visuelle)
 
 - `tests/capture_showcase.gd` : capture un GLB animé (env `MODEL`, `ANIM`, `FRAME`,
@@ -96,6 +109,10 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   --path . --script res://tests/capture_showcase.gd` (nécessite `xvfb` + Mesa GL).
 - `tests/capture_weapon.gd` : capture un gros plan d'une arme en main (env `MODEL`,
   `WEAPON`=sword|mace|pickaxe, `SHOT_OUT`, `FRAME`) pour valider le grip visuellement.
+- `tests/capture_world.gd` : capture une scène composée (château/ferme/caserne/tour/
+  mine/arbres KayKit) — preuve que le monde n'est plus procédural (env `SHOT_OUT`).
+- `tests/test_props.gd` : valide que chaque prop KayKit charge, est cel-shadé et se
+  dimensionne à la hauteur cible (22 checks).
 - `main.gd` a un hook `PEON_SHOT=<path>` qui capture le jeu (caméra 3ᵉ personne
   orientée vers la base) après 45 frames puis quitte.
 - `tests/test_game_feel.gd` valide le **game feel** : cel-shader appliqué à

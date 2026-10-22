@@ -16,21 +16,18 @@ func _ready() -> void:
 	_build_visual()
 
 func _build_visual() -> void:
-	# Rocky mound.
-	var mound := Builder.sphere(2.0, GameData.COLOR_MINE)
-	mound.scale = Vector3(1.3, 0.8, 1.3)
-	mound.position = Vector3(0, 0.7, 0)
-	add_child(mound)
-
-	var mound2 := Builder.sphere(1.5, GameData.COLOR_MINE)
-	mound2.scale = Vector3(1.3, 0.8, 1.3)
-	mound2.position = Vector3(-0.6, 1.1, -0.5)
-	add_child(mound2)
-
-	# Cave entrance (dark opening on the +Z face).
-	var opening := Builder.sphere(0.9, Color(0.08, 0.06, 0.1))
-	opening.position = Vector3(0, 0.9, 1.2)
-	add_child(opening)
+	# Real KayKit mine model (with procedural mound as fallback).
+	var mine := KayKitProp.create(self, "res://assets/models/kaykit_props/buildings_green/building_mine_green.gltf", 1.0)
+	if mine != null:
+		KayKitProp.scale_to_height(mine, 2.4)
+	else:
+		var mound := Builder.sphere(2.0, GameData.COLOR_MINE)
+		mound.scale = Vector3(1.3, 0.8, 1.3)
+		mound.position = Vector3(0, 0.7, 0)
+		add_child(mound)
+		var opening := Builder.sphere(0.9, Color(0.08, 0.06, 0.1))
+		opening.position = Vector3(0, 0.9, 1.2)
+		add_child(opening)
 
 	# Gold crystals poking out.
 	for i in 6:
