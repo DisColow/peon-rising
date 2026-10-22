@@ -30,6 +30,7 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `scripts/` — utilitaires/classe de base :
   - `builder.gd` : fabrique de meshes primitives + colliders (matériaux = `shaders/toon.gdshader`).
   - `unit_rig.gd` : **rig de personnage procédural** (tête/yeux/bras/jambes) avec animation de marche/idle (`update_animation`) et `swing_tool`. Réutilisé par `player`/`worker`/`grunt`.
+  - `skeletal_actor.gd` : charge un **GLB squeletté réel** (assets artistes) et pilote son `AnimationPlayer` (`set_moving`). Preuve : `tests/test_skeletal.gd`.
   - `game_data.gd` : constantes (couleurs, coûts, stats des bâtiments).
   - `stats.gd` : calcul des stats d'unité (avec bonus de talents).
   - `talent_db.gd` : définition de l'arbre de talents (roguelite).
@@ -48,16 +49,26 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `scenes/ui/` : `hud.gd` (ressources, PV, XP, influence, boutons de suggestion, écran victoire/défaite avec Rejouer/Menu), `talent_tree_ui.gd`, `pause_menu.gd` (pause + sensibilité/volume), `touch_ui.gd` (joystick + boutons tactiles Android).
 - `scenes/menu/` : `menu.gd` (menu principal), `meta_ui.gd` (écran de progression permanente).
 
-## Rendu stylisé (v1.1)
+## Rendu stylisé (v1.1 → v1.2)
 
 - `main._build_environment()` : tonemapping **ACES** + color grade (saturation/contraste),
   sky procédural chaud, **lumière clé chaude + fill froide** (soft shadows), SSAO,
   glow subtil, brouillard chaud léger. Le sol utilise `ground.gdshader`.
+- En **Forward+** : **SDFGI** (illumination globale) + **brouillard volumétrique**
+  (diffusion de la lumière), gardés derrière `RenderingServer.get_current_rendering_method()`.
 - Tous les meshes passent par le **cel-shader** (`builder.mat()`) pour un look
   "argile cartoon" homogène. Les arbres ont une canopée en sphères, les bâtiments
   des toits à deux pans (`_add_gable_roof`) + finitions, les unités un rig animé.
 - `fx.hit_stop()` fige brièvement le temps (`Engine.time_scale`) sur les coups/abattages
   (timer *unscaled* pour reprendre tout seul).
+
+## Assets & animation réelles
+
+- `assets/models/` : GLB squelettés de référence (`CesiumMan.glb` CC-BY, `Fox.glb` CC0)
+  pour valider l'import de vrais modèles animés. Voir `CREDITS.md`.
+- Pipeline `SkeletalActor` : `load(glb)` → instance → `AnimationPlayer` → `set_moving()`.
+  Les packs **CC0 Quaternius** (Ultimate Fantasy RTS, Ultimate Monsters…) se branchent
+  tel quel pour le rendu « cartoon Warcraft » cible.
 
 ## Gameplay FPS (refonte)
 

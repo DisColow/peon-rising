@@ -150,6 +150,17 @@ func _build_environment() -> void:
 	e.fog_enabled = true
 	e.fog_light_color = Color(0.82, 0.78, 0.68)
 	e.fog_density = 0.0022
+	# High-end global illumination + atmospheric light scattering (Forward+ only).
+	if RenderingServer.get_current_rendering_method() == "forward_plus":
+		e.sdfgi_enabled = true
+		e.sdfgi_bounce_feedback = 0.55
+		e.sdfgi_cascades = 4
+		e.volumetric_fog_enabled = true
+		e.volumetric_fog_density = 0.018
+		e.volumetric_fog_albedo = Color(0.82, 0.78, 0.68)
+		e.volumetric_fog_emission = Color(1.0, 0.88, 0.70)
+		e.volumetric_fog_emission_energy = 0.6
+		e.volumetric_fog_length = 64.0
 	env.environment = e
 	world.add_child(env)
 
