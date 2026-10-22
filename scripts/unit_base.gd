@@ -170,6 +170,12 @@ func take_damage(amount: float, attacker: Node = null) -> void:
 	hp -= actual
 	hp_changed.emit(hp, max_hp)
 	_flash_hit()
+	if is_in_group("worker"):
+		Sound.play("hurt")
+		if GameState.main != null and GameState.main.camera != null:
+			GameState.main.camera.shake(0.7)
+	else:
+		Sound.play("hit")
 	if attacker != null and attacker is Node3D:
 		var away := (global_position - (attacker as Node3D).global_position)
 		away.y = 0.0
@@ -200,6 +206,7 @@ func _die() -> void:
 		return
 	dead = true
 	died.emit(self)
+	Sound.play("enemy_die")
 	FX.burst(get_parent(), global_position + Vector3(0, 0.8, 0), _death_color(), 20, 0.6, 4.0, 0.8)
 	var t := create_tween()
 	t.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)

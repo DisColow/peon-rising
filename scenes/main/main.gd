@@ -12,6 +12,8 @@ const MineScript := preload("res://scenes/resources/gold_mine.gd")
 const CameraScript := preload("res://scenes/main/camera_rig.gd")
 const HudScript := preload("res://scenes/ui/hud.gd")
 const TalentUIScript := preload("res://scenes/ui/talent_tree_ui.gd")
+const PauseMenuScript := preload("res://scenes/ui/pause_menu.gd")
+const TouchUIScript := preload("res://scenes/ui/touch_ui.gd")
 
 var world: Node3D
 var units: Node3D
@@ -20,6 +22,7 @@ var commander: Node
 var enemy_commander: Node
 var hud: CanvasLayer
 var talent_ui: CanvasLayer
+var pause_menu: CanvasLayer
 
 var player_townhall: Building
 var player_mine: Node
@@ -30,6 +33,7 @@ var _respawn_timer: float = 0.0
 var _respawn_delay: float = 5.0
 var _ally_spawn_timer: float = 0.0
 var _barracks: Building = null
+var _objective_beacon: Node3D = null
 var _debug_timer: float = 1.0
 var _game_time: float = 0.0
 
@@ -75,6 +79,19 @@ func _process(delta: float) -> void:
 		if _ally_spawn_timer <= 0.0:
 			_ally_spawn_timer = 6.0
 			_spawn_ally_grunt()
+	_update_objective_beacon(delta)
+
+func _update_objective_beacon(delta: float) -> void:
+	if _objective_beacon == null:
+		return
+	if not GameState.match_running or commander == null or not is_instance_valid(commander):
+		_objective_beacon.visible = false
+		return
+	_objective_beacon.visible = true
+	var pos: Vector3 = commander.get_objective_position() + Vector3(0, 3.0, 0)
+	pos.y += sin(_game_time * 2.2) * 0.25
+	_objective_beacon.global_position = pos
+	_objective_beacon.rotate_y(delta * 1.6)
 
 func _build_environment() -> void:
 	world = Node3D.new()
@@ -220,6 +237,47 @@ func _build_ui() -> void:
 	talent_ui.name = "TalentUI"
 	add_child(talent_ui)
 
+	pause_menu = PauseMenuScript.new()
+	pause_menu.name = "PauseMenu"
+	add_child(pause_menu)
+
+	var touch_ui = TouchUIScript.new()
+	touch_ui.name = "TouchUI"
+	add_child(touch_ui)
+
+	_create_objective_beacon()
+
+func _create_objective_beacon() -> void:
+	_objective_beacon = Node3D.new()
+	_objective_beacon.name = "ObjectiveBeacon"
+	world.add_child(_objective_beacon)
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.86, 0.2)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.75, 0.05)
+	mat.emission_energy_multiplier = 2.5
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	var arrow := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.0
+	cm.bottom_radius = 0.5
+	cm.height = 1.0
+	arrow.mesh = cm
+	arrow.material_override = mat
+	arrow.rotation_degrees = Vector3(180, 0, 0)
+	_objective_beacon.add_child(arrow)
+
+	var glow := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.26
+	sm.height = 0.52
+	glow.mesh = sm
+	glow.material_override = mat
+	glow.position = Vector3(0, 0.9, 0)
+	_objective_beacon.add_child(glow)
+
 func _wire_signals() -> void:
 	EventBus.worker_died.connect(_on_worker_died)
 	EventBus.base_destroyed.connect(_on_base_destroyed)
@@ -236,9 +294,11 @@ func _on_base_destroyed(team: String) -> void:
 	GameState.match_running = false
 	if team == GameData.TEAM_ENEMY:
 		GameState.victory = true
+		Sound.play("victory")
 		EventBus.toast.emit("Base ennemie détruite ! Victoire !")
 	else:
 		GameState.victory = false
+		Sound.play("defeat")
 		EventBus.toast.emit("Notre base est tombée… Défaite.")
 	# Award meta essence on victory.
 	if GameState.victory:
@@ -268,6 +328,7 @@ func _register_navigation_obstacles() -> void:
 func _on_building_completed(b: Building) -> void:
 	Pathfinder.register_obstacle(b.global_position, _building_radius(b))
 	commander.notify_building_done(b.building_key)
+	Sound.play("build_done")
 	if b.team == GameData.TEAM_PLAYER and b.building_key == "barracks":
 		_barracks = b
 		_ally_spawn_timer = 3.0
@@ -281,6 +342,8 @@ func suggest(action: String) -> void:
 		EventBus.toast.emit("Pas assez d'influence (se recharge)")
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().paused:
+		return
 	if event.is_action_pressed("open_talents"):
 		talent_ui.toggle()
 	elif event.is_action_pressed("suggest_attack"):

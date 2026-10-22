@@ -9,9 +9,9 @@ contrôle" (influence), comme un animal de compagnie communiquerait avec son ma�
 
 ## Lancer / valider
 
-- Lancer : `godot --path .` (scène principale `res://scenes/main/main.tscn`).
+- Lancer : `godot --path .` (scène principale `res://scenes/menu/menu.tscn`).
 - Import headless : `godot --headless --import`.
-- Simulation headless (debug) : `PEON_DEBUG=1 godot --headless --quit-after 4800`.
+- Simulation headless (debug) : `PEON_DEBUG=1 godot --headless res://scenes/main/main.tscn --quit-after 4800`.
   Le flag `PEON_DEBUG` active des `print` de télémétrie (état du péon, ordres,
   dépôts) — inoffensif hors flag.
 
@@ -20,10 +20,12 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 ## Architecture (tout est construit procéduralement, peu de .tscn)
 
 - `autoload/` — singletons :
-  - `bootstrap.gd` : `Engine.max_fps=60` + création des actions d'entrée (WASD, dash, T/C/I…).
+  - `bootstrap.gd` : `Engine.max_fps=60` + création des actions d'entrée (WASD, dash, T/C/I, Échap + **manette** : stick gauche/droit, boutons A/B/X/Start).
   - `event_bus.gd` : signaux globaux (toast, resource_changed, order_assigned/completed, building_completed, base_destroyed, match_ended…).
-  - `game_state.gd` : ressources (or/bois/nourriture), XP/niveau, influence, `reset_run()` (roguelite), `gain_xp()`.
-  - `meta_progression.gd` : essence persistante (améliorations permanentes à venir).
+  - `game_state.gd` : ressources (or/bois/nourriture), XP/niveau, influence, `reset_run()` (roguelite), `gain_xp()`, entrées tactiles (`touch_move`, `touch_action_pressed`, `touch_dash_pressed`).
+  - `meta_progression.gd` : essence persistante, dépensée sur l'écran **progression permanente** (`scenes/menu/meta_ui.gd`).
+  - `settings.gd` : réglages persistants (sensibilité souris, volume) sauvegardés dans `user://settings.json`.
+  - `sound.gd` : mini-moteur audio procédural (`Sound.play("event")`), sons générés dans `assets/audio/`.
   - `pathfinder.gd` : **A\* sur grille 2D** (cellule 2.0u) pour contourner les obstacles. Autoload `Pathfinder`.
 - `scripts/` — utilitaires/classe de base :
   - `builder.gd` : fabrique de meshes primitives + colliders.
@@ -41,7 +43,8 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `scenes/resources/` : `tree.gd` (tombe), `gold_mine.gd` (on mine à l'intérieur), `gold_chunk.gd`.
 - `scenes/main/` : `main.gd` (assemblage du monde, spawns joueur/ouvriers, victoire/
   défaite), `camera_rig.gd` (**caméra FPS** : look souris yaw/pitch, suit la tête).
-- `scenes/ui/` : `hud.gd` (ressources, PV, XP, influence, boutons de suggestion), `talent_tree_ui.gd`.
+- `scenes/ui/` : `hud.gd` (ressources, PV, XP, influence, boutons de suggestion, écran victoire/défaite avec Rejouer/Menu), `talent_tree_ui.gd`, `pause_menu.gd` (pause + sensibilité/volume), `touch_ui.gd` (joystick + boutons tactiles Android).
+- `scenes/menu/` : `menu.gd` (menu principal), `meta_ui.gd` (écran de progression permanente).
 
 ## Gameplay FPS (refonte)
 

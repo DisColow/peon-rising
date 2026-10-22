@@ -144,16 +144,26 @@ func _tick(delta: float) -> void:
 	_update_carry_visual()
 
 func _handle_movement(delta: float) -> void:
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input: Vector2 = Input.get_vector("move_left", "move_right", "move_back", "move_forward")
+	if DisplayServer.is_touchscreen_available() and GameState.touch_move != Vector2.ZERO:
+		input = GameState.touch_move
 	var yaw := camera.rotation.y if camera != null else 0.0
 	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
 	var dir := (fwd * input.y + right * input.x)
 
 	var speed := move_speed
-	if Input.is_action_pressed("sprint") and input != Vector2.ZERO:
+	var sprinting := Input.is_action_pressed("sprint")
+	if DisplayServer.is_touchscreen_available() and input.length() > 0.9:
+		sprinting = true
+	if sprinting and input != Vector2.ZERO:
 		speed *= SPRINT_MULT
-	if Input.is_action_just_pressed("dash") and _dash_cooldown <= 0.0:
+
+	var dash_pressed := Input.is_action_just_pressed("dash")
+	if DisplayServer.is_touchscreen_available() and GameState.touch_dash_pressed:
+		dash_pressed = true
+		GameState.touch_dash_pressed = false
+	if dash_pressed and _dash_cooldown <= 0.0:
 		_dash_timer = DASH_TIME
 		_dash_cooldown = DASH_COOLDOWN
 		FX.burst(get_parent(), global_position + Vector3(0, 0.4, 0), Color(1, 1, 1, 0.6), 8, 0.3, 2.2, 0.4)
@@ -171,7 +181,11 @@ func _handle_movement(delta: float) -> void:
 		velocity.z = lerpf(velocity.z, 0.0, minf(1.0, ACCEL * delta))
 
 func _handle_action() -> void:
-	if not Input.is_action_just_pressed("interact"):
+	var pressed := Input.is_action_just_pressed("interact")
+	if DisplayServer.is_touchscreen_available() and GameState.touch_action_pressed:
+		pressed = true
+		GameState.touch_action_pressed = false
+	if not pressed:
 		return
 	if _swing_timer > 0.0:
 		return
@@ -211,6 +225,7 @@ func _chop(tree: Node) -> void:
 	if global_position.distance_to(tp) > REACH + 0.6:
 		return
 	_play_swing()
+	Sound.play("chop")
 	var got: float = tree.chop(stats["chop_yield"], self)
 	if got <= 0.0:
 		return
@@ -224,6 +239,7 @@ func _mine(mine: Node) -> void:
 	if global_position.distance_to((mine as Node3D).global_position) > 3.6:
 		return
 	_play_swing()
+	Sound.play("mine")
 	var got: float = mine.mine(stats["mine_yield"], self)
 	if got <= 0.0:
 		return
@@ -236,6 +252,7 @@ func _mine(mine: Node) -> void:
 func _deposit() -> void:
 	if carry_amount <= 0.0:
 		return
+	Sound.play("deposit")
 	GameState.add_resource(carry_type, int(round(carry_amount)))
 	GameState.gain_xp(8)
 	FX.float_text(get_parent(), global_position, "+%d" % int(round(carry_amount)), GameData.COLOR_GOLD if carry_type == GameData.GOLD else GameData.COLOR_WOOD_STACK)
@@ -250,6 +267,7 @@ func _build(node: Node) -> void:
 	if global_position.distance_to((node as Node3D).global_position) > 4.2:
 		return
 	_play_swing()
+	Sound.play("build")
 	node.add_build_progress(0.2 * stats["build_speed"])
 	FX.burst(get_parent(), (node as Node3D).global_position + Vector3(0, 1.0, 0), GameData.COLOR_ROCK, 4, 0.5, 2.0, 0.4)
 	if node.is_completed():
@@ -262,6 +280,7 @@ func _attack(target: Node) -> void:
 	if global_position.distance_to(tp) > REACH + 1.0:
 		return
 	_play_swing()
+	Sound.play("hit")
 	target.take_damage(attack_damage, self)
 
 func _play_swing() -> void:
@@ -298,6 +317,7 @@ func _die() -> void:
 		_vm = null
 	if camera != null:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	Sound.play("enemy_die")
 	GameState.worker = null
 	EventBus.worker_died.emit()
 	FX.burst(get_parent(), global_position + Vector3(0, 0.8, 0), GameData.COLOR_PLAYER, 24, 0.7, 4.5, 0.9)

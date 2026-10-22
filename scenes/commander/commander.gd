@@ -45,6 +45,44 @@ func _process(delta: float) -> void:
 func describe_objective() -> String:
 	return objective.describe()
 
+# World-space position the player should head toward for the current objective.
+func get_objective_position() -> Vector3:
+	match objective.type:
+		Order.Type.BUILD:
+			if _active_ghost != null and is_instance_valid(_active_ghost):
+				return (_active_ghost as Node3D).global_position
+			if base != null:
+				return (base as Node3D).global_position
+		Order.Type.GATHER_GOLD:
+			if mine != null:
+				return (mine as Node3D).global_position
+		Order.Type.GATHER_WOOD:
+			var t := _nearest_tree()
+			if t != null:
+				return (t as Node3D).global_position
+		Order.Type.ATTACK:
+			if objective.target != null and is_instance_valid(objective.target):
+				return (objective.target as Node3D).global_position
+			if enemy_base != null:
+				return (enemy_base as Node3D).global_position
+		Order.Type.DEFEND:
+			if base != null:
+				return (base as Node3D).global_position
+	return (base as Node3D).global_position if base != null else Vector3.ZERO
+
+func _nearest_tree() -> Node:
+	var center := (base as Node3D).global_position if base != null else Vector3.ZERO
+	var best: Node = null
+	var best_d := INF
+	for t in get_tree().get_nodes_in_group("tree"):
+		if not is_instance_valid(t):
+			continue
+		var d := center.distance_squared_to((t as Node3D).global_position)
+		if d < best_d:
+			best_d = d
+			best = t
+	return best
+
 func _evaluate() -> void:
 	# A build objective stays until the ghost the commander placed is complete.
 	if _active_ghost != null and is_instance_valid(_active_ghost) and not _active_ghost.is_completed():

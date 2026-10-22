@@ -93,6 +93,7 @@ func _topple() -> void:
 	if falling:
 		return
 	falling = true
+	Sound.play("hit", 0.7)
 	freeze = false
 	var dir := Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)).normalized()
 	apply_central_impulse(dir * 1.2)

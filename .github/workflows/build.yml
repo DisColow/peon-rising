@@ -30,6 +30,7 @@ jobs:
           cp /tmp/templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
       - name: Export Windows
         run: |
+          godot-bin/godot --headless --import
           mkdir -p build/windows
           godot-bin/godot --headless --export-release "Windows Desktop" build/windows/PeonRising.exe
       - name: Package
@@ -60,6 +61,7 @@ jobs:
           cp /tmp/templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
       - name: Export Linux
         run: |
+          godot-bin/godot --headless --import
           mkdir -p build/linux
           godot-bin/godot --headless --export-release "Linux" build/linux/PeonRising.x86_64
       - name: Package
@@ -101,6 +103,7 @@ jobs:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
+          godot-bin/godot --headless --import
           mkdir -p build/android
           godot-bin/godot --headless --export-release "Android" build/android/PeonRising.apk
       - name: Package

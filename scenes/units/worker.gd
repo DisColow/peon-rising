@@ -462,9 +462,8 @@ func _die() -> void:
 	if dead:
 		return
 	dead = true
-	GameState.worker = null
-	EventBus.worker_died.emit()
-	FX.burst(get_parent(), global_position + Vector3(0, 0.8, 0), GameData.COLOR_PLAYER, 24, 0.7, 4.5, 0.9)
+	Sound.play("enemy_die")
+	FX.burst(get_parent(), global_position + Vector3(0, 0.8, 0), GameData.COLOR_PLAYER, 20, 0.6, 4.0, 0.8)
 	var t := create_tween()
 	t.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	t.tween_callback(queue_free)

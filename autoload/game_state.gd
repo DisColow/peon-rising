@@ -27,6 +27,11 @@ var main: Node = null
 var worker: Node = null
 var commander: Node = null
 
+# Touch controls (Android). Written by the touch UI, read by the player.
+var touch_move: Vector2 = Vector2.ZERO
+var touch_action_pressed: bool = false
+var touch_dash_pressed: bool = false
+
 const XP_PER_LEVEL := 100.0
 
 func reset_run() -> void:
@@ -85,6 +90,7 @@ func gain_xp(amount: int) -> void:
 		xp -= needed
 		level += 1
 		talent_points += 1
+		Sound.play("levelup")
 		EventBus.talent_point_gained.emit(talent_points)
 		EventBus.toast.emit("Niveau %d ! +1 point de talent" % level)
 		needed = xp_needed()

@@ -17,6 +17,7 @@ var talent_points_label: Label
 var influence_bar: ProgressBar
 var toast_label: Label
 var end_label: Label
+var _end_buttons: VBoxContainer
 
 var _toast_tween: Tween
 
@@ -94,7 +95,29 @@ func _build() -> void:
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	end_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	end_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	end_label.visible = false
+
+	_end_buttons = VBoxContainer.new()
+	_end_buttons.set_anchors_preset(Control.PRESET_CENTER)
+	_end_buttons.position = Vector2(0, 90)
+	_end_buttons.add_theme_constant_override("separation", 12)
+	add_child(_end_buttons)
+
+	var replay := Button.new()
+	replay.text = "▶  Rejouer"
+	replay.custom_minimum_size = Vector2(260, 50)
+	replay.add_theme_font_size_override("font_size", 20)
+	replay.pressed.connect(_on_replay)
+	_end_buttons.add_child(replay)
+
+	var menu := Button.new()
+	menu.text = "★  Menu principal"
+	menu.custom_minimum_size = Vector2(260, 50)
+	menu.add_theme_font_size_override("font_size", 20)
+	menu.pressed.connect(_on_menu)
+	_end_buttons.add_child(menu)
+	_end_buttons.visible = false
 
 func _label(pos: Vector2, text: String, color: Color, size: int) -> Label:
 	var l := Label.new()
@@ -202,6 +225,16 @@ func _on_match_ended(victory: bool) -> void:
 	end_label.text = "VICTOIRE !" if victory else "DÉFAITE"
 	end_label.add_theme_color_override("font_color", Color(0.4, 0.95, 0.4) if victory else Color(0.95, 0.4, 0.4))
 	end_label.visible = true
+	_end_buttons.visible = true
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func _on_replay() -> void:
+	Sound.play("click")
+	get_tree().reload_current_scene()
+
+func _on_menu() -> void:
+	Sound.play("click")
+	get_tree().change_scene_to_file("res://scenes/menu/menu.tscn")
 
 func _on_respawn() -> void:
 	_on_talent_points(GameState.talent_points)
