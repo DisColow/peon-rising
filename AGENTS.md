@@ -83,6 +83,9 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - Les os KayKit sont nommés (`head`, `handslot.r`, …) → `BoneAttachment3D` pour les
   armes (main) et les marqueurs d'équipe (tête). L'échelle des unités est `1.2`
   (personnage ≈ 1.8u, aligné sur les colliders).
+- **Convention de grip d'arme validée** (`tests/test_weapon_grip.gd`, 15 checks) :
+  l'os `handslot.r` a +Z = monde-haut et +Y = monde-avant → manches verticaux,
+  lames/têtes vers le haut. Les armes (pioche/épée/masse) suivent cette convention.
 - `assets/models/` contient aussi les GLB de référence `CesiumMan.glb` (CC-BY) et
   `Fox.glb` (CC0). Voir `CREDITS.md`.
 
@@ -91,6 +94,8 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `tests/capture_showcase.gd` : capture un GLB animé (env `MODEL`, `ANIM`, `FRAME`,
   `SHOT_OUT`). Lancement : `xvfb-run -a godot --rendering-method gl_compatibility
   --path . --script res://tests/capture_showcase.gd` (nécessite `xvfb` + Mesa GL).
+- `tests/capture_weapon.gd` : capture un gros plan d'une arme en main (env `MODEL`,
+  `WEAPON`=sword|mace|pickaxe, `SHOT_OUT`, `FRAME`) pour valider le grip visuellement.
 - `main.gd` a un hook `PEON_SHOT=<path>` qui capture le jeu (caméra 3ᵉ personne
   orientée vers la base) après 45 frames puis quitte.
 - `tests/test_game_feel.gd` valide le **game feel** : cel-shader appliqué à

@@ -52,15 +52,24 @@ func _build_visual() -> void:
 		kr.queue_free()
 		_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
 
-	# Right-hand tool: a pickaxe / axe (swings on gather/build).
+	# Right-hand tool: a pickaxe / axe (swings on gather/build). The KayKit
+	# handslot bone has +Z = up and +Y = forward, so the handle runs vertical.
 	_arm = _rig.tool_r
-	var handle := Builder.cylinder(0.05, 0.9, GameData.COLOR_WOOD_STACK)
-	handle.rotation_degrees = Vector3(0, 0, 90)
-	handle.position = Vector3(0, -0.25, 0.25)
+	var handle := Builder.cylinder(0.045, 0.95, GameData.COLOR_WOOD_STACK)
+	handle.rotation_degrees = Vector3(90, 0, 0)
+	handle.position = Vector3(0, 0.05, 0.2)
 	_arm.add_child(handle)
-	var pick := Builder.box(Vector3(0.14, 0.06, 0.4), GameData.COLOR_ROCK)
-	pick.position = Vector3(0, -0.65, 0.28)
+	var head := Builder.box(Vector3(0.46, 0.09, 0.09), GameData.COLOR_ROCK)
+	head.position = Vector3(0, 0.05, 0.7)
+	_arm.add_child(head)
+	var pick := Builder.cone(0.07, 0.3, GameData.COLOR_ROCK)
+	pick.rotation_degrees = Vector3(0, 0, -90)
+	pick.position = Vector3(0.34, 0.05, 0.7)
 	_arm.add_child(pick)
+	var flat := Builder.cone(0.07, 0.2, GameData.COLOR_GOLD)
+	flat.rotation_degrees = Vector3(0, 0, 90)
+	flat.position = Vector3(-0.3, 0.05, 0.7)
+	_arm.add_child(flat)
 
 	# Carry visual (shown above head when holding resources)
 	_carry_visual = _rig.carry_slot

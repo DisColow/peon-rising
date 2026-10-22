@@ -44,19 +44,27 @@ func _build_visual() -> void:
 		plume.position = Vector3(0, 0.42, 0)
 		_rig.head.add_child(plume)
 
-	# Weapon (club for enemy, sword for ally) in the right hand.
+	# Weapon (mace for enemy, sword for ally) in the right hand. The handslot
+	# bone has +Z = up / +Y = forward, so handles run vertical.
 	var weapon: Node3D = _rig.tool_r
-	var handle := Builder.cylinder(0.05, 0.8, GameData.COLOR_WOOD_STACK)
+	var handle := Builder.cylinder(0.045, 0.85, GameData.COLOR_WOOD_STACK)
 	handle.rotation_degrees = Vector3(90, 0, 0)
-	handle.position = Vector3(0, 0.1, 0.3)
+	handle.position = Vector3(0, 0.05, 0.2)
 	weapon.add_child(handle)
 	if team == GameData.TEAM_ENEMY:
-		var club := Builder.sphere(0.18, Color(0.4, 0.3, 0.25))
-		club.position = Vector3(0, 0.1, 0.7)
-		weapon.add_child(club)
+		var head := Builder.cone(0.16, 0.42, Color(0.4, 0.3, 0.25))
+		head.rotation_degrees = Vector3(90, 0, 0)
+		head.position = Vector3(0, 0.05, 0.62)
+		weapon.add_child(head)
 	else:
-		var blade := Builder.box(Vector3(0.06, 0.02, 0.5), GameData.COLOR_ROCK)
-		blade.position = Vector3(0, 0.1, 0.45)
+		var pommel := Builder.sphere(0.06, GameData.COLOR_GOLD)
+		pommel.position = Vector3(0, 0.05, -0.18)
+		weapon.add_child(pommel)
+		var guard := Builder.box(Vector3(0.18, 0.04, 0.04), GameData.COLOR_GOLD)
+		guard.position = Vector3(0, 0.05, 0.4)
+		weapon.add_child(guard)
+		var blade := Builder.box(Vector3(0.13, 0.03, 0.55), GameData.COLOR_ROCK)
+		blade.position = Vector3(0, 0.05, 0.72)
 		weapon.add_child(blade)
 
 	Builder.collider(self, Builder.capsule_shape(0.48, 1.9))
