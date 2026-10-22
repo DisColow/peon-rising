@@ -5,6 +5,10 @@ extends Node3D
 # animation library. Exposes the same interface as UnitRig so units can swap
 # procedural primitives for real models transparently.
 
+const TOON_SHADER := preload("res://shaders/toon_textured.gdshader")
+
+static var _white: ImageTexture
+
 var anim: AnimationPlayer = null
 var skeleton: Skeleton3D = null
 var head: Node3D = null      # BoneAttachment3D on the head bone
@@ -36,6 +40,7 @@ func _load(model_path: String, scale: float, yaw_offset: float) -> void:
 	inst.rotation.y = yaw_offset
 	anim = _find(inst, "AnimationPlayer")
 	skeleton = _find(inst, "Skeleton3D")
+	_apply_toon(inst)
 	if skeleton != null:
 		head = _bone_attach(skeleton, "head")
 		tool_r = _bone_attach(skeleton, "handslot.r")
@@ -61,6 +66,39 @@ func _find(n: Node, cls: String) -> Node:
 		if r != null:
 			return r
 	return null
+
+func _apply_toon(inst: Node) -> void:
+	for mi in _find_all(inst, "MeshInstance3D"):
+		var m: MeshInstance3D = mi
+		var mesh := m.mesh
+		if mesh == null:
+			continue
+		for s in mesh.get_surface_count():
+			var mat := m.get_surface_override_material(s)
+			if mat == null:
+				mat = mesh.surface_get_material(s)
+			var tex: Texture2D = null
+			if mat != null and mat is BaseMaterial3D:
+				tex = (mat as BaseMaterial3D).albedo_texture
+			var sm := ShaderMaterial.new()
+			sm.shader = TOON_SHADER
+			sm.set_shader_parameter("albedo_tex", tex if tex != null else _white_tex())
+			m.set_surface_override_material(s, sm)
+
+func _find_all(n: Node, cls: String) -> Array:
+	var out: Array = []
+	if cls == "MeshInstance3D" and n is MeshInstance3D:
+		out.append(n)
+	for c in n.get_children():
+		out.append_array(_find_all(c, cls))
+	return out
+
+static func _white_tex() -> ImageTexture:
+	if _white == null:
+		var img := Image.create(1, 1, false, Image.FORMAT_RGBA8)
+		img.fill(Color.WHITE)
+		_white = ImageTexture.create_from_image(img)
+	return _white
 
 func _bone_attach(sk: Skeleton3D, bone_name: String) -> Node3D:
 	if sk.find_bone(bone_name) < 0:

@@ -67,11 +67,16 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `fx.hit_stop()` fige brièvement le temps (`Engine.time_scale`) sur les coups/abattages
   (timer *unscaled* pour reprendre tout seul).
 
-## Assets & animation réelles (v1.3)
+## Assets & animation réelles (v1.3 → v1.4)
 
 - **Unités = vrais modèles KayKit (CC0)** intégrés au gameplay via `kaykit_rig.gd` :
-  péon/ouvrier = `Barbarian.glb`, grunt allié = `Knight.glb`, grunt ennemi =
-  `Skeleton_Warrior.glb` (variantes `Mage`, `Rogue_Hooded`, `Skeleton_Minion` dispo).
+  péon/ouvrier = `Barbarian.glb`, **héros FPS (player.gd) = `Barbarian.glb`**,
+  grunt allié = `Knight.glb`, grunt ennemi = `Skeleton_Warrior.glb` (variantes
+  `Mage`, `Rogue_Hooded`, `Skeleton_Minion` dispo).
+- **Cel-shading sur les modèles** : `shaders/toon_textured.gdshader` (version
+  texturée de `toon.gdshader`) est appliqué à chaque surface via
+  `KayKitRig._apply_toon()` (override `ShaderMaterial` + texture d'albédo
+  d'origine) → look « cartoon Warcraft » homogène avec le monde procédural.
 - Chaque GLB embarque sa **bibliothèque d'animations** (Idle, Walking_A/B/C, Running,
   `1H_Melee_Attack_*`, `Death_A`, Hit, Jump…). `kaykit_rig.gd` mappe : idle/walk via
   `update_animation()`, attaque via `swing_tool()` (anim one-shot), mort via `play_death()`.
@@ -88,6 +93,10 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   --path . --script res://tests/capture_showcase.gd` (nécessite `xvfb` + Mesa GL).
 - `main.gd` a un hook `PEON_SHOT=<path>` qui capture le jeu (caméra 3ᵉ personne
   orientée vers la base) après 45 frames puis quitte.
+- `tests/test_game_feel.gd` valide le **game feel** : cel-shader appliqué à
+  toutes les surfaces du modèle, clips walk/attack/death présents, `FX.hit_stop`
+  (freeze-frame) et `FX.burst` (particules d'impact). `tests/test_skeletal.gd`
+  valide l'import des GLB de référence.
 
 ## Gameplay FPS (refonte)
 

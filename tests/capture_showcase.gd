@@ -47,17 +47,13 @@ func _initialize() -> void:
 	env.environment = e
 	world.add_child(env)
 
-	var scene: PackedScene = load(model)
-	if scene == null:
+	var rig := KayKitRig.create(world, model, 1.4)
+	if rig.anim == null:
 		printerr("cannot load model ", model)
 		quit(1)
 		return
-	var inst: Node3D = scene.instantiate()
-	inst.scale = Vector3.ONE * 1.4
-	inst.position = Vector3(0, 0, 0)
-	world.add_child(inst)
-	var ap: AnimationPlayer = _find(inst, "AnimationPlayer")
-	if ap != null and anim_name != "":
+	var ap: AnimationPlayer = rig.anim
+	if anim_name != "":
 		if ap.has_animation(anim_name):
 			ap.play(anim_name)
 		else:

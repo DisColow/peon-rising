@@ -26,7 +26,7 @@ var _bob_time: float = 0.0
 
 var _vm: Node3D          # first-person viewmodel (tool in hand)
 var _vm_base: Vector3 = Vector3(0.42, -0.34, -0.6)
-var _rig: UnitRig
+var _rig: Node3D
 var _carry_visual: Node3D
 var _carry_gold_mesh: MeshInstance3D
 var _carry_wood_mesh: MeshInstance3D
@@ -47,7 +47,12 @@ func _build_visual() -> void:
 	_visual.name = "Body"
 	add_child(_visual)
 
-	_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
+	var kr := KayKitRig.create(_visual, "res://assets/models/kaykit/Barbarian.glb", 1.2)
+	if kr.anim != null:
+		_rig = kr
+	else:
+		kr.queue_free()
+		_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
 
 	_carry_visual = _rig.carry_slot
 	_carry_gold_mesh = Builder.sphere(0.22, GameData.COLOR_GOLD)
