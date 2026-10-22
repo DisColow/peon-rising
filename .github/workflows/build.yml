@@ -1,0 +1,125 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_RELEASE: "4.7.2-stable"
+
+jobs:
+  build-windows:
+    name: Windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot
+        run: |
+          mkdir -p godot-bin
+          curl -sL -o /tmp/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d godot-bin
+          find godot-bin -maxdepth 1 -type f -name 'Godot*' -exec mv {} godot-bin/godot \;
+          chmod +x godot-bin/godot
+          godot-bin/godot --version
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -sL -o /tmp/templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          cp /tmp/templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+      - name: Export Windows
+        run: |
+          mkdir -p build/windows
+          godot-bin/godot --headless --export-release "Windows Desktop" build/windows/PeonRising.exe
+      - name: Package
+        run: |
+          cd build/windows
+          zip -qr ../PeonRising-Windows.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PeonRising-Windows
+          path: build/PeonRising-Windows.zip
+
+  build-linux:
+    name: Linux (Steamdeck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot
+        run: |
+          mkdir -p godot-bin
+          curl -sL -o /tmp/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d godot-bin
+          find godot-bin -maxdepth 1 -type f -name 'Godot*' -exec mv {} godot-bin/godot \;
+          chmod +x godot-bin/godot
+          godot-bin/godot --version
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -sL -o /tmp/templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          cp /tmp/templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+      - name: Export Linux
+        run: |
+          mkdir -p build/linux
+          godot-bin/godot --headless --export-release "Linux" build/linux/PeonRising.x86_64
+      - name: Package
+        run: |
+          cd build/linux
+          zip -qr ../PeonRising-Linux-x86_64.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PeonRising-Linux
+          path: build/PeonRising-Linux-x86_64.zip
+
+  build-android:
+    name: Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Setup Godot
+        run: |
+          mkdir -p godot-bin
+          curl -sL -o /tmp/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d godot-bin
+          find godot-bin -maxdepth 1 -type f -name 'Godot*' -exec mv {} godot-bin/godot \;
+          chmod +x godot-bin/godot
+          godot-bin/godot --version
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -sL -o /tmp/templates.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          cp /tmp/templates/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+      - name: Generate debug keystore
+        run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
+          keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - name: Export Android
+        run: |
+          mkdir -p build/android
+          godot-bin/godot --headless --export-release "Android" build/android/PeonRising.apk
+      - name: Package
+        run: |
+          cd build/android
+          zip -qr ../PeonRising-Android.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PeonRising-Android
+          path: build/PeonRising-Android.zip
+
+  release:
+    name: Release
+    needs: [build-windows, build-linux, build-android]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.zip
+          generate_release_notes: true
