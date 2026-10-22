@@ -60,7 +60,10 @@ func _build() -> void:
 func toggle() -> void:
 	_root.visible = not _root.visible
 	if _root.visible:
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		refresh()
+	else:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func refresh() -> void:
 	_points_label.text = "Points de talent : %d" % GameState.talent_points

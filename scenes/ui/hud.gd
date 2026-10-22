@@ -1,12 +1,14 @@
 extends CanvasLayer
 
-# In-game HUD: resources, current order, health, XP, influence and the
-# "pet" suggestion buttons that let the human steer the AI commander.
+# First-person HUD: resources, the persistent objective, crosshair, context
+# prompt, carried resources, health, XP, influence and the suggestion buttons.
 
 var gold_label: Label
 var wood_label: Label
 var food_label: Label
+var carry_label: Label
 var order_label: Label
+var context_label: Label
 var hp_bar: ProgressBar
 var hp_text: Label
 var xp_bar: ProgressBar
@@ -23,16 +25,43 @@ func _ready() -> void:
 	_build()
 	_connect()
 
+func _process(_delta: float) -> void:
+	var w := GameState.worker
+	if w == null or not is_instance_valid(w):
+		context_label.text = ""
+		carry_label.text = ""
+		return
+	if w.has_method("get_look_label"):
+		context_label.text = w.get_look_label()
+	else:
+		context_label.text = ""
+	if w.has_method("is_carrying") and w.is_carrying():
+		var amt: int = int(w.get("carry_amount"))
+		var typ: String = str(w.get("carry_type"))
+		carry_label.text = "Transporte : %d %s  → dépose à l'hôtel de ville" % [amt, ("or" if typ == GameData.GOLD else "bois")]
+	else:
+		carry_label.text = ""
+
 func _build() -> void:
 	# --- Resources (top-left) ---
 	gold_label = _label(Vector2(16, 12), "Or : 0", Color(1.0, 0.85, 0.3), 22)
 	wood_label = _label(Vector2(16, 42), "Bois : 0", Color(0.8, 0.6, 0.35), 22)
 	food_label = _label(Vector2(16, 72), "Nourriture : 0/0", Color(0.9, 0.95, 0.9), 20)
+	carry_label = _label(Vector2(16, 100), "", Color(1.0, 0.9, 0.4), 19)
 
-	# --- Current order (top-center) ---
-	order_label = _label(Vector2(0, 14), "Ordre : —", Color(1, 1, 1), 24)
+	# --- Objective (top-center, always visible) ---
+	order_label = _label(Vector2(0, 12), "Objectif : —", Color(1, 1, 1), 27)
 	order_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	order_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+
+	# --- Crosshair + context prompt (center) ---
+	var cross := _label(Vector2(0, 0), "+", Color(1, 1, 1, 0.9), 34)
+	cross.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cross.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	context_label = _label(Vector2(0, 40), "", Color(1, 1, 1), 20)
+	context_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	context_label.set_anchors_preset(Control.PRESET_CENTER)
 
 	# --- Health (bottom-left) ---
 	hp_bar = _bar(Vector2(16, 640), Vector2(240, 18), Color(0.3, 0.8, 0.35))
@@ -45,18 +74,18 @@ func _build() -> void:
 
 	# --- Influence (bottom-center) ---
 	influence_bar = _bar(Vector2(500, 660), Vector2(280, 12), Color(0.9, 0.75, 0.3))
-	var inf_label := _label(Vector2(500, 636), "INFLUENCE (pierre de contrôle)", Color(0.9, 0.8, 0.5), 16)
+	_label(Vector2(500, 636), "INFLUENCE (pierre de contrôle)", Color(0.9, 0.8, 0.5), 16)
 
 	# --- Suggestion buttons (bottom-center row) ---
 	_suggestion_buttons()
 
 	# --- Hints (top-right) ---
-	var hint := _label(Vector2(0, 14), "Clic gauche : ping  ·  C : désobéir  ·  T : talents\nWASD : esquiver  ·  Espace : dash  ·  Clic droit : orbite", Color(0.85, 0.9, 0.85), 15)
+	var hint := _label(Vector2(0, 12), "ZQSD/WASD : bouger  ·  Maj : sprint  ·  Espace : dash\nClic gauche / E : agir  ·  T : talents", Color(0.85, 0.9, 0.85), 15)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 
 	# --- Toast (center) ---
-	toast_label = _label(Vector2(0, 120), "", Color.WHITE, 24)
+	toast_label = _label(Vector2(0, 150), "", Color.WHITE, 24)
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
 
@@ -97,28 +126,21 @@ func _bar(pos: Vector2, size: Vector2, color: Color) -> ProgressBar:
 
 func _suggestion_buttons() -> void:
 	var actions := [
-		["Attaquer", "attack_now"],
-		["Défendre", "defend"],
-		["+ Or", "focus_gold"],
-		["+ Bois", "focus_wood"],
+		["1 Attaquer", "attack_now"],
+		["2 Défendre", "defend"],
+		["3 + Or", "focus_gold"],
+		["4 + Bois", "focus_wood"],
 	]
-	var x := 460.0
+	var x := 508.0
 	for a in actions:
 		var btn := Button.new()
 		btn.text = a[0]
 		btn.position = Vector2(x, 686)
-		btn.size = Vector2(90, 30)
+		btn.size = Vector2(96, 30)
 		btn.add_theme_font_size_override("font_size", 15)
 		btn.pressed.connect(_on_suggestion.bind(a[1]))
 		add_child(btn)
-		x += 96.0
-	var tower_btn := Button.new()
-	tower_btn.text = "Tour ici"
-	tower_btn.position = Vector2(x, 686)
-	tower_btn.size = Vector2(90, 30)
-	tower_btn.add_theme_font_size_override("font_size", 15)
-	tower_btn.pressed.connect(_on_tower_mode)
-	add_child(tower_btn)
+		x += 102.0
 
 func _connect() -> void:
 	EventBus.resource_changed.connect(_on_resources)
@@ -158,14 +180,14 @@ func _on_influence(current: float, maximum: float) -> void:
 	influence_bar.value = current
 
 func _on_order(order) -> void:
-	order_label.text = "Ordre : %s" % order.describe()
+	order_label.text = "Objectif : %s" % order.describe()
 
 func _refresh_order() -> void:
 	var w := GameState.worker
 	if w != null and is_instance_valid(w) and w.has_method("describe_order"):
-		order_label.text = "Ordre : %s" % w.describe_order()
+		order_label.text = "Objectif : %s" % w.describe_order()
 	else:
-		order_label.text = "Ordre : —"
+		order_label.text = "Objectif : —"
 
 func _on_toast(message: String) -> void:
 	toast_label.text = message
@@ -188,7 +210,3 @@ func _on_respawn() -> void:
 func _on_suggestion(action: String) -> void:
 	if GameState.main != null:
 		GameState.main.suggest(action)
-
-func _on_tower_mode() -> void:
-	if GameState.main != null:
-		GameState.main.toggle_tower_mode()

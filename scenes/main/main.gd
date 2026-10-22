@@ -3,6 +3,7 @@ extends Node3D
 # Entry point. Builds the whole world procedurally and wires everything together.
 
 const WorkerScript := preload("res://scenes/units/worker.gd")
+const PlayerScript := preload("res://scenes/units/player.gd")
 const GruntScript := preload("res://scenes/units/grunt.gd")
 const CommanderScript := preload("res://scenes/commander/commander.gd")
 const EnemyCommanderScript := preload("res://scenes/commander/enemy_commander.gd")
@@ -27,7 +28,6 @@ var enemy_mine: Node
 
 var _respawn_timer: float = 0.0
 var _respawn_delay: float = 5.0
-var _tower_mode: bool = false
 var _ally_spawn_timer: float = 0.0
 var _barracks: Building = null
 var _debug_timer: float = 1.0
@@ -44,9 +44,9 @@ func _ready() -> void:
 	_build_units_and_brains()
 	_build_ui()
 	_wire_signals()
-	# Kick the commander so the worker gets an order almost immediately.
+	# Kick the commander so an objective appears almost immediately.
 	commander._tick = 0.6
-	EventBus.toast.emit("Incarne un péon : obéis aux ordres !")
+	EventBus.toast.emit("Incarne un péon : suis les objectifs du commandant !")
 
 func _process(delta: float) -> void:
 	if not GameState.match_running:
@@ -64,11 +64,11 @@ func _process(delta: float) -> void:
 				("—" if not alive else w.describe_order()),
 				("vivant" if alive else "mort"),
 			])
-	# Respawn the worker after it dies.
+	# Respawn the player after death.
 	if GameState.worker == null or not is_instance_valid(GameState.worker):
 		_respawn_timer -= delta
 		if _respawn_timer <= 0.0:
-			_spawn_worker()
+			_spawn_player()
 	# Friendly reinforcements from the barracks.
 	if _barracks != null and is_instance_valid(_barracks) and _barracks.completed:
 		_ally_spawn_timer -= delta
@@ -111,6 +111,14 @@ func _build_environment() -> void:
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	e.ambient_light_energy = 0.9
+	e.glow_enabled = true
+	e.glow_intensity = 0.6
+	e.glow_bloom = 0.12
+	e.ssao_enabled = true
+	e.ssao_intensity = 1.4
+	e.fog_enabled = true
+	e.fog_light_color = Color(0.72, 0.86, 0.92)
+	e.fog_density = 0.0035
 	env.environment = e
 	world.add_child(env)
 
@@ -130,6 +138,7 @@ func _build_bases() -> void:
 	_scatter_trees(Vector3(-8, 0, -8), 12.0, 12)
 	_scatter_trees(Vector3(8, 0, 8), 10.0, 6)
 	_scatter_rocks(Vector3(0, 0, 0), 18.0, 8)
+	_scatter_grass(Vector3(0, 0, 0), 50.0, 110)
 
 	# Enemy base across the map.
 	var enemy_pos := Vector3(45, 0, 45)
@@ -153,24 +162,37 @@ func _build_units_and_brains() -> void:
 	commander = CommanderScript.new()
 	commander.name = "Commander"
 	add_child(commander)
-	commander.setup(null, player_townhall, player_mine, enemy_townhall)
+	GameState.commander = commander
 
 	enemy_commander = EnemyCommanderScript.new()
 	enemy_commander.name = "EnemyCommander"
 	add_child(enemy_commander)
 	enemy_commander.setup(enemy_townhall, player_townhall, units)
 
-	_spawn_worker()
+	_spawn_player()
+	commander.setup(GameState.worker, player_townhall, player_mine, enemy_townhall)
+	# A few autonomous allied workers keep the economy running on their own.
+	for i in 3:
+		_spawn_ally_worker()
 
-func _spawn_worker() -> void:
-	var w = WorkerScript.new()
-	units.add_child(w)
-	w.global_position = player_townhall.global_position + Vector3(0, 1.0, 2.5)
-	GameState.worker = w
-	commander.worker = w
+func _spawn_player() -> void:
+	var p = PlayerScript.new()
+	units.add_child(p)
+	p.global_position = player_townhall.global_position + Vector3(0, 1.0, 2.5)
+	GameState.worker = p
+	if commander != null:
+		commander.hero = p
+	if camera != null and is_instance_valid(camera):
+		camera.target = p
+		p.setup_camera(camera)
 	_respawn_timer = 0.0
 	EventBus.worker_respawned.emit()
-	FX.burst(units, w.global_position + Vector3(0, 1.0, 0), GameData.COLOR_PLAYER, 10, 0.5, 2.5, 0.5)
+	FX.burst(units, p.global_position + Vector3(0, 1.0, 0), GameData.COLOR_PLAYER, 10, 0.5, 2.5, 0.5)
+
+func _spawn_ally_worker() -> void:
+	var w = WorkerScript.new()
+	units.add_child(w)
+	w.global_position = player_townhall.global_position + Vector3(randf_range(-3, 3), 0.5, randf_range(-3, 3))
 
 func _spawn_ally_grunt() -> void:
 	var g = GruntScript.new()
@@ -187,6 +209,8 @@ func _build_ui() -> void:
 	camera = CameraScript.new()
 	add_child(camera)
 	camera.setup(GameState.worker)
+	if GameState.worker != null and is_instance_valid(GameState.worker):
+		GameState.worker.setup_camera(camera)
 
 	hud = HudScript.new()
 	hud.name = "HUD"
@@ -256,80 +280,17 @@ func suggest(action: String) -> void:
 	else:
 		EventBus.toast.emit("Pas assez d'influence (se recharge)")
 
-func toggle_tower_mode() -> void:
-	_tower_mode = not _tower_mode
-	if _tower_mode:
-		EventBus.toast.emit("Clique sur le sol pour placer une tour (clic droit annule).")
-	else:
-		EventBus.toast.emit("Placement de tour annulé.")
-
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and event.pressed:
-		_handle_ping(event.position)
-		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-		if _tower_mode:
-			_tower_mode = false
-			EventBus.toast.emit("Placement de tour annulé.")
-		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_handle_ping(get_viewport().get_mouse_position())
-	elif event.is_action_pressed("open_talents"):
+	if event.is_action_pressed("open_talents"):
 		talent_ui.toggle()
-	elif event.is_action_pressed("cancel_order"):
-		_cancel_current_order()
-
-func _handle_ping(screen_pos: Vector2) -> void:
-	var pos := _ray_to_ground(screen_pos)
-	_ping_marker(pos)
-	if _tower_mode:
-		_tower_mode = false
-		if GameState.consume_influence(1.0):
-			commander.suggest("build_tower_here", pos)
-		else:
-			EventBus.toast.emit("Pas assez d'influence (se recharge)")
-
-func _ray_to_ground(screen_pos: Vector2) -> Vector3:
-	if camera == null:
-		return Vector3.ZERO
-	var from := camera.project_ray_origin(screen_pos)
-	var dir := camera.project_ray_normal(screen_pos)
-	if absf(dir.y) < 0.001:
-		return from
-	var t := -from.y / dir.y
-	return from + dir * t
-
-func _ping_marker(pos: Vector3) -> void:
-	var ring := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.6
-	cm.bottom_radius = 0.6
-	cm.height = 0.06
-	ring.mesh = cm
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.95, 0.95, 0.25)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ring.material_override = mat
-	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	world.add_child(ring)
-	ring.global_position = pos + Vector3(0, 0.06, 0)
-	var t := ring.create_tween()
-	t.set_parallel(true)
-	t.tween_property(ring, "scale", Vector3(2.2, 1.0, 2.2), 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	t.tween_property(ring, "transparency", 1.0, 0.9)
-	var timer := get_tree().create_timer(1.0)
-	timer.timeout.connect(ring.queue_free)
-
-func _cancel_current_order() -> void:
-	var w := GameState.worker
-	if w == null or not is_instance_valid(w):
-		return
-	# Refusing an order lets the commander re-think, at a small influence cost.
-	if GameState.consume_influence(1.0):
-		EventBus.toast.emit("Ordre refusé : le commandant réévalue.")
-		commander._tick = 0.3
-	else:
-		EventBus.toast.emit("Pas assez d'influence pour désobéir.")
+	elif event.is_action_pressed("suggest_attack"):
+		suggest("attack_now")
+	elif event.is_action_pressed("suggest_defend"):
+		suggest("defend")
+	elif event.is_action_pressed("suggest_gold"):
+		suggest("focus_gold")
+	elif event.is_action_pressed("suggest_wood"):
+		suggest("focus_wood")
 
 func _scatter_trees(center: Vector3, radius: float, count: int) -> void:
 	for i in count:
@@ -351,3 +312,13 @@ func _scatter_rocks(center: Vector3, radius: float, count: int) -> void:
 		var ang := randf_range(0, TAU)
 		var rad := randf_range(2.0, radius)
 		r.global_position = center + Vector3(cos(ang) * rad, 0.3, sin(ang) * rad)
+
+func _scatter_grass(center: Vector3, radius: float, count: int) -> void:
+	for i in count:
+		var is_flower := randf() < 0.18
+		var col := Color(0.5, 0.78, 0.32) if not is_flower else Color(0.9, 0.85, 0.4)
+		var tuft := Builder.cone(randf_range(0.08, 0.2), randf_range(0.25, 0.7), col, 0.9)
+		var ang := randf_range(0, TAU)
+		var rad := randf_range(0, radius)
+		tuft.position = center + Vector3(cos(ang) * rad, 0.12, sin(ang) * rad)
+		world.add_child(tuft)

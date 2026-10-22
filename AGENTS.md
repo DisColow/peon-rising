@@ -1,9 +1,11 @@
 # Peon Rising
 
-Jeu de STR 3D cartoon sous **Godot 4.7** (Forward+, mobile renderer en secours).
-On incarne un péon qui obéit aux ordres d'un commandant IA ; le joueur influence la
-partie via un système de "pierre de contrôle" (influence) et corrige l'IA comme un
-animal de compagnie communiquerait avec son maître.
+Jeu de STR 3D cartoon en **vue FPS** sous **Godot 4.7** (Forward+, mobile renderer
+en secours). On incarne un péon **contrôlé directement** (WASD + souris) : on se
+déplace, on regarde et on effectue soi-même chaque action (couper, miner, déposer,
+construire, attaquer). Le commandant IA ne fait que **suggérer des objectifs**
+affichés en permanence à l'écran ; le joueur l'influence via une "pierre de
+contrôle" (influence), comme un animal de compagnie communiquerait avec son maître.
 
 ## Lancer / valider
 
@@ -31,12 +33,32 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   - `order.gd` : type `Order` (enum + target/position/building_type).
   - `unit_base.gd` : base d'unité (déplacement, `navigate_to` avec pathfinding + anti-blocage, dégâts, knockback, mort). Fournit `_approach()` et `_target_radius()`.
   - `fx.gd` : particules / texte flottant.
-- `scenes/units/` : `worker.gd` (machine à états du péon) et `grunt.gd` (unité de mêlée allié/ennemi).
+- `scenes/units/` : `player.gd` (héros FPS contrôlé par le joueur, raycast d'action,
+  viewmodel animé, groupe `worker`), `worker.gd` (ouvrier allié **autonome** — machine
+  à états récolte/dépôt, groupe `ally`) et `grunt.gd` (unité de mêlée allié/ennemi).
 - `scenes/commander/` : `commander.gd` (IA joueur) et `enemy_commander.gd` (vagues ennemies).
 - `scenes/buildings/` : `building.gd` (construction/achèvement, tour qui tire), `projectile.gd`.
 - `scenes/resources/` : `tree.gd` (tombe), `gold_mine.gd` (on mine à l'intérieur), `gold_chunk.gd`.
-- `scenes/main/` : `main.gd` (assemblage du monde, spawns, ping, victoire/défaite), `camera_rig.gd` (orbite/zoom souris + tactile).
+- `scenes/main/` : `main.gd` (assemblage du monde, spawns joueur/ouvriers, victoire/
+  défaite), `camera_rig.gd` (**caméra FPS** : look souris yaw/pitch, suit la tête).
 - `scenes/ui/` : `hud.gd` (ressources, PV, XP, influence, boutons de suggestion), `talent_tree_ui.gd`.
+
+## Gameplay FPS (refonte)
+
+- `player.gd` : `_tick()` lit WASD (relatif au `yaw` de la caméra), dash/sprint, et
+  `interact` (clic gauche / E) déclenche un raycast (`_look_at_node`) qui dispatch
+  coupe/mine/dépôt/attaque/construction selon le groupe du nœud visé.
+- Les **ordres** sont devenus des **objectifs** : `commander._choose_objective()`
+  renvoie un `Order` (construire/récolter/défendre/attaquer) affiché par le HUD.
+  Pour construire, le commandant **place un bâtiment fantôme** (`Building.create_ghost`)
+  et dépense les ressources ; le joueur va le finir au clic.
+- **Autres unités** : 3 ouvriers alliés autonomes (`worker.gd`) + grunts alliés
+  (caserne) + vagues ennemies. Le joueur est le seul contrôlé en direct.
+- **Coupe du bois réaliste** : `tree.chop(multiplier, chopper)` creuse une entaille
+  visible par coup (`_spawn_notch`), secoue le tronc, projette des copeaux, et
+  l'arbre tombe après `MAX_HITS` coups.
+- Entrée : actions `interact` (clic gauche/E) et suggestions `1`–`4` (influence),
+  définies dans `bootstrap.gd`. La souris est capturée (FPS) et relâchée via T.
 
 ## Points d'attention (bugs déjà corrigés)
 

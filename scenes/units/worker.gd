@@ -35,7 +35,7 @@ var _carry_gold_mesh: MeshInstance3D
 var _carry_wood_mesh: MeshInstance3D
 
 func _after_ready() -> void:
-	add_to_group("worker")
+	add_to_group("ally")
 	refresh_stats()
 	hp = max_hp
 
@@ -189,19 +189,12 @@ func _build_margin(key: String) -> float:
 func _tick(delta: float) -> void:
 	if OS.has_environment("PEON_DEBUG") and Engine.get_physics_frames() % 90 == 0:
 		print("[worker] state=%d pos=(%.1f,%.1f,%.1f) carry=%.1f order=%d" % [_state, global_position.x, global_position.y, global_position.z, carry_amount, order.type])
-	_dash_cooldown = maxf(0.0, _dash_cooldown - delta)
 	_swing_time = maxf(0.0, _swing_time - delta)
 	_update_carry_visual()
 
-	# Manual dodge / self-preservation overrides any order for a short window.
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	if input != Vector2.ZERO:
-		_manual_timer = MANUAL_WINDOW
-		_dodge_dir = input
-	if _manual_timer > 0.0:
-		_manual_timer -= delta
-		_do_manual(input, delta)
-		return
+	# Autonomous worker: if nothing to do, pick a gather job.
+	if _state == State.IDLE and order.type == Order.Type.IDLE:
+		_assign_autonomous_gather()
 
 	match _state:
 		State.IDLE:
@@ -223,17 +216,11 @@ func _tick(delta: float) -> void:
 		State.REPAIR:
 			_state_repair(delta)
 
-func _do_manual(input: Vector2, delta: float) -> void:
-	var dir := Vector3(input.x, 0.0, input.y)
-	var speed := move_speed * 1.6
-	if Input.is_action_just_pressed("dash") and _dash_cooldown <= 0.0:
-		_dash_timer = DASH_TIME
-		_dash_cooldown = DASH_COOLDOWN
-		FX.burst(get_parent(), global_position + Vector3(0, 0.3, 0), Color(1, 1, 1, 0.6), 8, 0.3, 2.0, 0.4)
-	if _dash_timer > 0.0:
-		_dash_timer -= delta
-		speed = DASH_SPEED
-	set_velocity_xz(dir, speed, delta)
+func _assign_autonomous_gather() -> void:
+	if GameState.gold <= GameState.wood:
+		assign_order(Order.new(Order.Type.GATHER_GOLD))
+	else:
+		assign_order(Order.new(Order.Type.GATHER_WOOD))
 
 # --- States ---
 
@@ -332,10 +319,10 @@ func _state_deposit(delta: float) -> void:
 		carry_amount = 0.0
 		carry_type = ""
 		_update_carry_visual()
-		# Resume the same gather order if it is still the current one.
+		# Pick the next gather job based on current scarcity.
 		match order.type:
 			Order.Type.GATHER_GOLD, Order.Type.GATHER_WOOD:
-				assign_order(order)
+				_assign_autonomous_gather()
 			_:
 				_state = State.IDLE
 				EventBus.order_completed.emit(order)
