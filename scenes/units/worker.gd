@@ -30,7 +30,7 @@ var _dash_cooldown: float = 0.0
 var _swing_time: float = 0.0
 
 var _arm: Node3D
-var _rig: UnitRig
+var _rig: Node3D
 var _carry_visual: Node3D
 var _carry_gold_mesh: MeshInstance3D
 var _carry_wood_mesh: MeshInstance3D
@@ -45,7 +45,12 @@ func _build_visual() -> void:
 	_visual.name = "Body"
 	add_child(_visual)
 
-	_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
+	var kr := KayKitRig.create(_visual, "res://assets/models/kaykit/Barbarian.glb", 1.2)
+	if kr.anim != null:
+		_rig = kr
+	else:
+		kr.queue_free()
+		_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
 
 	# Right-hand tool: a pickaxe / axe (swings on gather/build).
 	_arm = _rig.tool_r

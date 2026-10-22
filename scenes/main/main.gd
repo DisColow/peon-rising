@@ -37,6 +37,7 @@ var _barracks: Building = null
 var _objective_beacon: Node3D = null
 var _debug_timer: float = 1.0
 var _game_time: float = 0.0
+var _shot_frames: int = 0
 
 const MAP_HALF := 60.0
 
@@ -57,6 +58,11 @@ func _process(delta: float) -> void:
 	if not GameState.match_running:
 		return
 	_game_time += delta
+	# Debug screenshot capture (off-screen CI validation via PEON_SHOT path).
+	if OS.has_environment("PEON_SHOT"):
+		_shot_frames += 1
+		if _shot_frames == 45:
+			_capture_shot()
 	if OS.has_environment("PEON_DEBUG"):
 		_debug_timer -= delta
 		if _debug_timer <= 0.0:
@@ -81,6 +87,19 @@ func _process(delta: float) -> void:
 			_ally_spawn_timer = 6.0
 			_spawn_ally_grunt()
 	_update_objective_beacon(delta)
+
+func _capture_shot() -> void:
+	var out := OS.get_environment("PEON_SHOT")
+	if camera != null and player_townhall != null and is_instance_valid(player_townhall):
+		var center := (player_townhall as Node3D).global_position
+		camera.global_position = center + Vector3(14.0, 11.0, 16.0)
+		var t := camera.global_transform
+		camera.global_transform = t.looking_at(center + Vector3(0, 2, 0), Vector3.UP)
+	await get_tree().process_frame
+	var img := get_viewport().get_texture().get_image()
+	var err := img.save_png(out)
+	print("SHOT ", out, " err=", err)
+	get_tree().quit()
 
 func _update_objective_beacon(delta: float) -> void:
 	if _objective_beacon == null:

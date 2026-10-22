@@ -7,7 +7,7 @@ var target_position: Vector3 = Vector3.ZERO
 var attack_mode: String = "seek_base"
 var aggro_range: float = 6.5
 
-var _rig: UnitRig
+var _rig: Node3D
 
 func _after_ready() -> void:
 	if team == GameData.TEAM_ENEMY:
@@ -24,7 +24,13 @@ func _build_visual() -> void:
 	var skin_color := GameData.COLOR_ENEMY_SKIN if team == GameData.TEAM_ENEMY else GameData.COLOR_PLAYER_SKIN
 	var armor_color := GameData.COLOR_ENEMY_ARMOR if team == GameData.TEAM_ENEMY else GameData.COLOR_PLAYER_ARMOR
 
-	_rig = UnitRig.create(_visual, body_color, skin_color, armor_color)
+	var model := "res://assets/models/kaykit/Skeleton_Warrior.glb" if team == GameData.TEAM_ENEMY else "res://assets/models/kaykit/Knight.glb"
+	var kr := KayKitRig.create(_visual, model, 1.2)
+	if kr.anim != null:
+		_rig = kr
+	else:
+		kr.queue_free()
+		_rig = UnitRig.create(_visual, body_color, skin_color, armor_color)
 
 	if team == GameData.TEAM_ENEMY:
 		# Horns for the bad guys.
@@ -39,7 +45,7 @@ func _build_visual() -> void:
 		_rig.head.add_child(plume)
 
 	# Weapon (club for enemy, sword for ally) in the right hand.
-	var weapon := _rig.tool_r
+	var weapon: Node3D = _rig.tool_r
 	var handle := Builder.cylinder(0.05, 0.8, GameData.COLOR_WOOD_STACK)
 	handle.rotation_degrees = Vector3(90, 0, 0)
 	handle.position = Vector3(0, 0.1, 0.3)

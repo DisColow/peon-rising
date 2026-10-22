@@ -31,6 +31,11 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   - `builder.gd` : fabrique de meshes primitives + colliders (matériaux = `shaders/toon.gdshader`).
   - `unit_rig.gd` : **rig de personnage procédural** (tête/yeux/bras/jambes) avec animation de marche/idle (`update_animation`) et `swing_tool`. Réutilisé par `player`/`worker`/`grunt`.
   - `skeletal_actor.gd` : charge un **GLB squeletté réel** (assets artistes) et pilote son `AnimationPlayer` (`set_moving`). Preuve : `tests/test_skeletal.gd`.
+  - `kaykit_rig.gd` : **rig basé sur les vrais modèles KayKit** (CC0) — charge le GLB,
+    trouve `AnimationPlayer` + `Skeleton3D`, accroche `BoneAttachment3D` sur `head` /
+    `handslot.r`, et expose la même interface que `UnitRig` (`update_animation`,
+    `swing_tool`, `play_death`, `head`, `tool_r`, `carry_slot`). Utilisé par
+    `worker`/`grunt` (fallback `UnitRig` si le GLB est introuvable).
   - `game_data.gd` : constantes (couleurs, coûts, stats des bâtiments).
   - `stats.gd` : calcul des stats d'unité (avec bonus de talents).
   - `talent_db.gd` : définition de l'arbre de talents (roguelite).
@@ -62,13 +67,27 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - `fx.hit_stop()` fige brièvement le temps (`Engine.time_scale`) sur les coups/abattages
   (timer *unscaled* pour reprendre tout seul).
 
-## Assets & animation réelles
+## Assets & animation réelles (v1.3)
 
-- `assets/models/` : GLB squelettés de référence (`CesiumMan.glb` CC-BY, `Fox.glb` CC0)
-  pour valider l'import de vrais modèles animés. Voir `CREDITS.md`.
-- Pipeline `SkeletalActor` : `load(glb)` → instance → `AnimationPlayer` → `set_moving()`.
-  Les packs **CC0 Quaternius** (Ultimate Fantasy RTS, Ultimate Monsters…) se branchent
-  tel quel pour le rendu « cartoon Warcraft » cible.
+- **Unités = vrais modèles KayKit (CC0)** intégrés au gameplay via `kaykit_rig.gd` :
+  péon/ouvrier = `Barbarian.glb`, grunt allié = `Knight.glb`, grunt ennemi =
+  `Skeleton_Warrior.glb` (variantes `Mage`, `Rogue_Hooded`, `Skeleton_Minion` dispo).
+- Chaque GLB embarque sa **bibliothèque d'animations** (Idle, Walking_A/B/C, Running,
+  `1H_Melee_Attack_*`, `Death_A`, Hit, Jump…). `kaykit_rig.gd` mappe : idle/walk via
+  `update_animation()`, attaque via `swing_tool()` (anim one-shot), mort via `play_death()`.
+- Les os KayKit sont nommés (`head`, `handslot.r`, …) → `BoneAttachment3D` pour les
+  armes (main) et les marqueurs d'équipe (tête). L'échelle des unités est `1.2`
+  (personnage ≈ 1.8u, aligné sur les colliders).
+- `assets/models/` contient aussi les GLB de référence `CesiumMan.glb` (CC-BY) et
+  `Fox.glb` (CC0). Voir `CREDITS.md`.
+
+## Captures hors-écran (preuve visuelle)
+
+- `tests/capture_showcase.gd` : capture un GLB animé (env `MODEL`, `ANIM`, `FRAME`,
+  `SHOT_OUT`). Lancement : `xvfb-run -a godot --rendering-method gl_compatibility
+  --path . --script res://tests/capture_showcase.gd` (nécessite `xvfb` + Mesa GL).
+- `main.gd` a un hook `PEON_SHOT=<path>` qui capture le jeu (caméra 3ᵉ personne
+  orientée vers la base) après 45 frames puis quitte.
 
 ## Gameplay FPS (refonte)
 
