@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peon Rising — preuve visuelle</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#15171c; color:#e8eaf0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; margin:0; padding:2rem; }
+  h1 { font-size:1.6rem; margin:0 0 .3rem; }
+  .sub { color:#9aa2b1; margin-bottom:2rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1.5rem; }
+  figure { margin:0; background:#1e2128; border:1px solid #2b303b; border-radius:12px; overflow:hidden; }
+  img { width:100%; display:block; background:#0e1014; }
+  figcaption { padding:.7rem 1rem; font-size:.85rem; color:#b8bfcc; }
+  figcaption b { color:#fff; }
+  .hero { margin-bottom:2rem; }
+  .hero img { border-radius:12px; border:1px solid #2b303b; }
+</style>
+</head>
+<body>
+<h1>Peon Rising — preuve visuelle</h1>
+<p class="sub">Captures hors-écran réelles (modèles KayKit + cel-shading + SSAO/bloom/ACES). Ouvrez cette page et jugez par vous-même.</p>
+
+<div class="hero">
+  <img src="gameplay.gif" alt="Boucle de jeu en mouvement">
+  <p class="sub" style="margin-top:.5rem">🔄 <b>En mouvement</b> : le péon se déplace, abat un arbre (entaille visible par coup + tremblement), ramène le bois, construit. C'est le game feel, pas une image figée.</p>
+</div>
+
+<div class="grid">
+  <figure><img src="screenshots/world_props.png"><figcaption><b>Le monde</b> — château, ferme, caserne, tour, mine, arbres : vrais modèles KayKit texturés, plus de primitives procédurales.</figcaption></figure>
+  <figure><img src="screenshots/gameplay.png"><figcaption><b>La partie</b> — base du joueur, commandant, balise d'objectif, unités.</figcaption></figure>
+  <figure><img src="screenshots/knight_walk.png"><figcaption><b>Grunt allié</b> (Knight) — riggé + animé.</figcaption></figure>
+  <figure><img src="screenshots/skeleton_attack.png"><figcaption><b>Ennemi</b> (Skeleton) — en attaque.</figcaption></figure>
+  <figure><img src="screenshots/barbarian_idle.png"><figcaption><b>Le héros FPS</b> (Barbarian) — contrôle direct WASD + souris.</figcaption></figure>
+  <figure><img src="screenshots/knight_sword.png"><figcaption><b>Épée en main</b> — orientation de grip validée (gros plan).</figcaption></figure>
+  <figure><img src="screenshots/barbarian_pickaxe.png"><figcaption><b>Pioche en main</b> — manche vertical, traverse + pic.</figcaption></figure>
+</div>
+
+<p class="sub" style="margin-top:2rem">Tests objectifs reproductibles : <code>test_props.gd</code> (22/22), <code>test_game_feel.gd</code> (8/8), <code>test_weapon_grip.gd</code> (15/15), <code>test_skeletal.gd</code>. Détail dans <code>docs/COMPARISON.md</code>.</p>
+</body>
+</html>

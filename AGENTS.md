@@ -113,6 +113,10 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   mine/arbres KayKit) — preuve que le monde n'est plus procédural (env `SHOT_OUT`).
 - `tests/test_props.gd` : valide que chaque prop KayKit charge, est cel-shadé et se
   dimensionne à la hauteur cible (22 checks).
+- `tests/capture_sequence.gd` : capture la boucle de jeu **en mouvement** (env
+  `SEQ_DIR`, `SEQ_INTERVAL`, `SEQ_MAX`) → assemblée en `docs/gameplay.gif` (PIL).
+- Preuve pour validation humaine : `docs/showcase.html` (galerie) + `docs/COMPARISON.md`
+  (comparaison aux conventions STR/Warcraft III, avec preuves).
 - `main.gd` a un hook `PEON_SHOT=<path>` qui capture le jeu (caméra 3ᵉ personne
   orientée vers la base) après 45 frames puis quitte.
 - `tests/test_game_feel.gd` valide le **game feel** : cel-shader appliqué à
