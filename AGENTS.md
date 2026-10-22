@@ -28,13 +28,15 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   - `sound.gd` : mini-moteur audio procédural (`Sound.play("event")`), sons générés dans `assets/audio/`.
   - `pathfinder.gd` : **A\* sur grille 2D** (cellule 2.0u) pour contourner les obstacles. Autoload `Pathfinder`.
 - `scripts/` — utilitaires/classe de base :
-  - `builder.gd` : fabrique de meshes primitives + colliders.
+  - `builder.gd` : fabrique de meshes primitives + colliders (matériaux = `shaders/toon.gdshader`).
+  - `unit_rig.gd` : **rig de personnage procédural** (tête/yeux/bras/jambes) avec animation de marche/idle (`update_animation`) et `swing_tool`. Réutilisé par `player`/`worker`/`grunt`.
   - `game_data.gd` : constantes (couleurs, coûts, stats des bâtiments).
   - `stats.gd` : calcul des stats d'unité (avec bonus de talents).
   - `talent_db.gd` : définition de l'arbre de talents (roguelite).
   - `order.gd` : type `Order` (enum + target/position/building_type).
   - `unit_base.gd` : base d'unité (déplacement, `navigate_to` avec pathfinding + anti-blocage, dégâts, knockback, mort). Fournit `_approach()` et `_target_radius()`.
-  - `fx.gd` : particules / texte flottant.
+  - `fx.gd` : particules / texte flottant / `hit_stop` (freeze-frame).
+- `shaders/` — `toon.gdshader` (cel-shading : bandes douces, ombre teintée froide, rim, specular) et `ground.gdshader` (herbe procédurale world-space).
 - `scenes/units/` : `player.gd` (héros FPS contrôlé par le joueur, raycast d'action,
   viewmodel animé, groupe `worker`), `worker.gd` (ouvrier allié **autonome** — machine
   à états récolte/dépôt, groupe `ally`) et `grunt.gd` (unité de mêlée allié/ennemi).
@@ -45,6 +47,17 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
   défaite), `camera_rig.gd` (**caméra FPS** : look souris yaw/pitch, suit la tête).
 - `scenes/ui/` : `hud.gd` (ressources, PV, XP, influence, boutons de suggestion, écran victoire/défaite avec Rejouer/Menu), `talent_tree_ui.gd`, `pause_menu.gd` (pause + sensibilité/volume), `touch_ui.gd` (joystick + boutons tactiles Android).
 - `scenes/menu/` : `menu.gd` (menu principal), `meta_ui.gd` (écran de progression permanente).
+
+## Rendu stylisé (v1.1)
+
+- `main._build_environment()` : tonemapping **ACES** + color grade (saturation/contraste),
+  sky procédural chaud, **lumière clé chaude + fill froide** (soft shadows), SSAO,
+  glow subtil, brouillard chaud léger. Le sol utilise `ground.gdshader`.
+- Tous les meshes passent par le **cel-shader** (`builder.mat()`) pour un look
+  "argile cartoon" homogène. Les arbres ont une canopée en sphères, les bâtiments
+  des toits à deux pans (`_add_gable_roof`) + finitions, les unités un rig animé.
+- `fx.hit_stop()` fige brièvement le temps (`Engine.time_scale`) sur les coups/abattages
+  (timer *unscaled* pour reprendre tout seul).
 
 ## Gameplay FPS (refonte)
 

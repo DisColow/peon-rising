@@ -7,6 +7,8 @@ var target_position: Vector3 = Vector3.ZERO
 var attack_mode: String = "seek_base"
 var aggro_range: float = 6.5
 
+var _rig: UnitRig
+
 func _after_ready() -> void:
 	if team == GameData.TEAM_ENEMY:
 		add_to_group("enemy")
@@ -22,50 +24,41 @@ func _build_visual() -> void:
 	var skin_color := GameData.COLOR_ENEMY_SKIN if team == GameData.TEAM_ENEMY else GameData.COLOR_PLAYER_SKIN
 	var armor_color := GameData.COLOR_ENEMY_ARMOR if team == GameData.TEAM_ENEMY else GameData.COLOR_PLAYER_ARMOR
 
-	var torso := Builder.capsule(0.48, 1.0, body_color)
-	torso.position = Vector3(0, 1.05, 0)
-	_visual.add_child(torso)
-
-	var head := Builder.sphere(0.36, skin_color)
-	head.position = Vector3(0, 1.85, 0)
-	_visual.add_child(head)
+	_rig = UnitRig.create(_visual, body_color, skin_color, armor_color)
 
 	if team == GameData.TEAM_ENEMY:
 		# Horns for the bad guys.
 		for side in [-1.0, 1.0]:
 			var horn := Builder.cone(0.08, 0.5, Color(0.95, 0.95, 0.85))
-			horn.position = Vector3(side * 0.22, 2.1, 0)
-			horn.rotation_degrees = Vector3(0, 0, side * 22)
-			_visual.add_child(horn)
+			horn.position = Vector3(side * 0.2, 0.28, 0)
+			horn.rotation_degrees = Vector3(0, 0, side * 24)
+			_rig.head.add_child(horn)
 	else:
 		var plume := Builder.cone(0.1, 0.4, Color(0.2, 0.4, 0.6))
-		plume.position = Vector3(0, 2.15, 0)
-		_visual.add_child(plume)
+		plume.position = Vector3(0, 0.42, 0)
+		_rig.head.add_child(plume)
 
-	for side in [-1.0, 1.0]:
-		var leg := Builder.box(Vector3(0.24, 0.4, 0.28), armor_color)
-		leg.position = Vector3(side * 0.17, 0.22, 0)
-		_visual.add_child(leg)
-
-	# Weapon (club for enemy, sword for ally).
-	var weapon := Node3D.new()
-	weapon.position = Vector3(0.55, 1.2, 0)
-	_visual.add_child(weapon)
+	# Weapon (club for enemy, sword for ally) in the right hand.
+	var weapon := _rig.tool_r
 	var handle := Builder.cylinder(0.05, 0.8, GameData.COLOR_WOOD_STACK)
-	handle.rotation_degrees = Vector3(0, 0, 90)
+	handle.rotation_degrees = Vector3(90, 0, 0)
+	handle.position = Vector3(0, 0.1, 0.3)
 	weapon.add_child(handle)
 	if team == GameData.TEAM_ENEMY:
-		var club := Builder.sphere(0.16, Color(0.4, 0.3, 0.25))
-		club.position = Vector3(0, -0.2, 0.35)
+		var club := Builder.sphere(0.18, Color(0.4, 0.3, 0.25))
+		club.position = Vector3(0, 0.1, 0.7)
 		weapon.add_child(club)
 	else:
 		var blade := Builder.box(Vector3(0.06, 0.02, 0.5), GameData.COLOR_ROCK)
-		blade.position = Vector3(0, -0.35, 0)
+		blade.position = Vector3(0, 0.1, 0.45)
 		weapon.add_child(blade)
 
 	Builder.collider(self, Builder.capsule_shape(0.48, 1.9))
 
 func _tick(delta: float) -> void:
+	if _rig != null:
+		var hspeed := Vector2(velocity.x, velocity.z).length()
+		_rig.update_animation(delta, move_speed, hspeed > 0.4)
 	var enemy := _nearest_enemy()
 	if enemy != null and global_position.distance_to((enemy as Node3D).global_position) <= aggro_range:
 		_attack_node(enemy, delta)
@@ -86,6 +79,8 @@ func _attack_node(target: Node, delta: float) -> void:
 	velocity.z = lerpf(velocity.z, 0.0, minf(1.0, ACCEL * delta))
 	if _attack_timer <= 0.0:
 		_attack_timer = attack_cooldown
+		if _rig != null:
+			_rig.swing_tool(self, attack_cooldown * 0.5)
 		target.take_damage(attack_damage, self)
 
 func _nearest_enemy() -> Node:

@@ -30,6 +30,7 @@ var _dash_cooldown: float = 0.0
 var _swing_time: float = 0.0
 
 var _arm: Node3D
+var _rig: UnitRig
 var _carry_visual: Node3D
 var _carry_gold_mesh: MeshInstance3D
 var _carry_wood_mesh: MeshInstance3D
@@ -44,55 +45,23 @@ func _build_visual() -> void:
 	_visual.name = "Body"
 	add_child(_visual)
 
-	var torso := Builder.capsule(0.42, 0.9, GameData.COLOR_PLAYER)
-	torso.position = Vector3(0, 0.95, 0)
-	_visual.add_child(torso)
+	_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
 
-	var head := Builder.sphere(0.34, GameData.COLOR_PLAYER_SKIN)
-	head.position = Vector3(0, 1.7, 0)
-	_visual.add_child(head)
-
-	var belt := Builder.box(Vector3(0.5, 0.16, 0.36), GameData.COLOR_PLAYER_ARMOR)
-	belt.position = Vector3(0, 0.62, 0)
-	_visual.add_child(belt)
-
-	# Legs
-	var leg_l := Builder.box(Vector3(0.22, 0.4, 0.26), GameData.COLOR_PLAYER_ARMOR)
-	leg_l.position = Vector3(-0.16, 0.22, 0)
-	_visual.add_child(leg_l)
-	var leg_r := Builder.box(Vector3(0.22, 0.4, 0.26), GameData.COLOR_PLAYER_ARMOR)
-	leg_r.position = Vector3(0.16, 0.22, 0)
-	_visual.add_child(leg_r)
-
-	# Left arm
-	var arm_l := Builder.box(Vector3(0.16, 0.5, 0.18), GameData.COLOR_PLAYER_SKIN)
-	arm_l.position = Vector3(-0.5, 1.15, 0)
-	_visual.add_child(arm_l)
-
-	# Right arm (holds pickaxe, animated on swing)
-	_arm = Node3D.new()
-	_arm.position = Vector3(0.45, 1.35, 0)
-	_visual.add_child(_arm)
-	var arm_r := Builder.box(Vector3(0.16, 0.5, 0.18), GameData.COLOR_PLAYER_SKIN)
-	arm_r.position = Vector3(0, -0.2, 0)
-	_arm.add_child(arm_r)
+	# Right-hand tool: a pickaxe / axe (swings on gather/build).
+	_arm = _rig.tool_r
 	var handle := Builder.cylinder(0.05, 0.9, GameData.COLOR_WOOD_STACK)
 	handle.rotation_degrees = Vector3(0, 0, 90)
-	handle.position = Vector3(0, -0.45, 0.25)
+	handle.position = Vector3(0, -0.25, 0.25)
 	_arm.add_child(handle)
 	var pick := Builder.box(Vector3(0.14, 0.06, 0.4), GameData.COLOR_ROCK)
-	pick.position = Vector3(0, -0.85, 0.28)
+	pick.position = Vector3(0, -0.65, 0.28)
 	_arm.add_child(pick)
 
 	# Carry visual (shown above head when holding resources)
-	_carry_visual = Node3D.new()
-	_carry_visual.position = Vector3(0, 2.1, 0)
-	_visual.add_child(_carry_visual)
+	_carry_visual = _rig.carry_slot
 	_carry_gold_mesh = Builder.sphere(0.22, GameData.COLOR_GOLD)
-	_carry_gold_mesh.position = Vector3(0, 0, 0)
 	_carry_visual.add_child(_carry_gold_mesh)
 	_carry_wood_mesh = Builder.box(Vector3(0.34, 0.2, 0.3), GameData.COLOR_WOOD_STACK)
-	_carry_wood_mesh.position = Vector3(0, 0, 0)
 	_carry_visual.add_child(_carry_wood_mesh)
 	_update_carry_visual()
 
@@ -192,6 +161,11 @@ func _tick(delta: float) -> void:
 	_swing_time = maxf(0.0, _swing_time - delta)
 	_update_carry_visual()
 
+	# Procedural walk/idle animation.
+	if _rig != null:
+		var hspeed := Vector2(velocity.x, velocity.z).length()
+		_rig.update_animation(delta, move_speed, hspeed > 0.4)
+
 	# Autonomous worker: if nothing to do, pick a gather job.
 	if _state == State.IDLE and order.type == Order.Type.IDLE:
 		_assign_autonomous_gather()
@@ -271,6 +245,7 @@ func _state_gather(delta: float) -> void:
 			if _work_timer <= 0.0:
 				_work_timer = 1.1 / stats["mine_speed"]
 				_play_swing()
+				Sound.play("mine", 0.5)
 				var got: float = _gather_node.mine(stats["mine_yield"], self)
 				if got <= 0.0:
 					_state = State.IDLE
@@ -289,6 +264,7 @@ func _state_gather(delta: float) -> void:
 			if _work_timer <= 0.0:
 				_work_timer = 1.3 / stats["chop_speed"]
 				_play_swing()
+				Sound.play("chop", 0.5)
 				var got: float = tree.chop(stats["chop_yield"])
 				if got <= 0.0:
 					_state = State.IDLE
@@ -353,6 +329,7 @@ func _state_build(delta: float) -> void:
 		if _work_timer <= 0.0:
 			_work_timer = 0.35
 			_play_swing()
+			Sound.play("build", 0.5)
 			_build_node.add_build_progress(0.18 * stats["build_speed"])
 			FX.burst(get_parent(), _build_node.global_position + Vector3(0, 1.0, 0), GameData.COLOR_ROCK, 4, 0.5, 2.0, 0.4)
 			if _build_node.is_completed():
@@ -381,6 +358,7 @@ func _state_attack(delta: float) -> void:
 	if _attack_timer <= 0.0:
 		_attack_timer = attack_cooldown
 		_play_swing()
+		Sound.play("hit", 0.5)
 		_attack_target.take_damage(attack_damage, self)
 
 func _state_defend(delta: float) -> void:
@@ -417,13 +395,10 @@ func _state_repair(delta: float) -> void:
 				EventBus.order_completed.emit(order)
 
 func _play_swing() -> void:
-	if _arm == null:
+	if _rig == null:
 		return
 	_swing_time = SWING_TIME
-	var t := create_tween()
-	_arm.rotation.x = -1.4
-	t.tween_property(_arm, "rotation:x", 0.5, SWING_TIME * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	t.tween_property(_arm, "rotation:x", -1.4, SWING_TIME * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_rig.swing_tool(self, SWING_TIME)
 
 func _update_carry_visual() -> void:
 	if _carry_visual == null:

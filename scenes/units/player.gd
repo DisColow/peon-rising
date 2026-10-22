@@ -26,6 +26,7 @@ var _bob_time: float = 0.0
 
 var _vm: Node3D          # first-person viewmodel (tool in hand)
 var _vm_base: Vector3 = Vector3(0.42, -0.34, -0.6)
+var _rig: UnitRig
 var _carry_visual: Node3D
 var _carry_gold_mesh: MeshInstance3D
 var _carry_wood_mesh: MeshInstance3D
@@ -46,27 +47,9 @@ func _build_visual() -> void:
 	_visual.name = "Body"
 	add_child(_visual)
 
-	var torso := Builder.capsule(0.42, 0.9, GameData.COLOR_PLAYER)
-	torso.position = Vector3(0, 0.95, 0)
-	_visual.add_child(torso)
-	var head := Builder.sphere(0.34, GameData.COLOR_PLAYER_SKIN)
-	head.position = Vector3(0, 1.7, 0)
-	_visual.add_child(head)
-	var belt := Builder.box(Vector3(0.5, 0.16, 0.36), GameData.COLOR_PLAYER_ARMOR)
-	belt.position = Vector3(0, 0.62, 0)
-	_visual.add_child(belt)
-	for side in [-1.0, 1.0]:
-		var leg := Builder.box(Vector3(0.22, 0.4, 0.26), GameData.COLOR_PLAYER_ARMOR)
-		leg.position = Vector3(side * 0.16, 0.22, 0)
-		_visual.add_child(leg)
-	for side in [-1.0, 1.0]:
-		var arm := Builder.box(Vector3(0.16, 0.5, 0.18), GameData.COLOR_PLAYER_SKIN)
-		arm.position = Vector3(side * 0.5, 1.15, 0)
-		_visual.add_child(arm)
+	_rig = UnitRig.create(_visual, GameData.COLOR_PLAYER, GameData.COLOR_PLAYER_SKIN, GameData.COLOR_PLAYER_ARMOR)
 
-	_carry_visual = Node3D.new()
-	_carry_visual.position = Vector3(0, 2.15, 0)
-	_visual.add_child(_carry_visual)
+	_carry_visual = _rig.carry_slot
 	_carry_gold_mesh = Builder.sphere(0.22, GameData.COLOR_GOLD)
 	_carry_visual.add_child(_carry_gold_mesh)
 	_carry_wood_mesh = Builder.box(Vector3(0.34, 0.2, 0.3), GameData.COLOR_WOOD_STACK)
@@ -282,6 +265,7 @@ func _attack(target: Node) -> void:
 	_play_swing()
 	Sound.play("hit")
 	target.take_damage(attack_damage, self)
+	FX.hit_stop(get_tree(), 0.05, 0.1)
 
 func _play_swing() -> void:
 	if _vm == null:

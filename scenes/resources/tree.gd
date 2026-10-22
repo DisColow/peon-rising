@@ -30,25 +30,39 @@ func _build_visual() -> void:
 	add_child(_visual)
 
 	_trunk_height = randf_range(2.6, 3.4)
-	var trunk := Builder.cylinder(0.22, _trunk_height, GameData.COLOR_TREE_TRUNK)
+
+	# Tapered trunk (wider at the base).
+	var trunk := Builder.cylinder(0.24, _trunk_height, GameData.COLOR_TREE_TRUNK)
 	trunk.position = Vector3(0, _trunk_height * 0.5, 0)
+	trunk.scale = Vector3(1.0, 1.0, 1.0)
 	_visual.add_child(trunk)
+	var base_flare := Builder.cone(0.4, 0.5, GameData.COLOR_TREE_TRUNK.darkened(0.1))
+	base_flare.position = Vector3(0, 0.25, 0)
+	_visual.add_child(base_flare)
 
-	var foliage_h := randf_range(1.3, 1.9)
-	var base_r := randf_range(1.0, 1.35)
-	var f1 := Builder.cone(base_r, foliage_h, GameData.COLOR_TREE_LEAVES)
-	f1.position = Vector3(0, _trunk_height + foliage_h * 0.35, 0)
-	_visual.add_child(f1)
-	var f2 := Builder.cone(base_r * 0.72, foliage_h * 0.8, GameData.COLOR_TREE_LEAVES_DARK)
-	f2.position = Vector3(0, _trunk_height + foliage_h * 0.8, 0)
-	_visual.add_child(f2)
-	var f3 := Builder.cone(base_r * 0.48, foliage_h * 0.55, GameData.COLOR_TREE_LEAVES)
-	f3.position = Vector3(0, _trunk_height + foliage_h * 1.15, 0)
-	_visual.add_child(f3)
+	# Soft cloud canopy made of overlapping spheres.
+	var base_r := randf_range(1.05, 1.4)
+	var crown_y := _trunk_height + base_r * 0.55
+	var lobes := [
+		[Vector3(0, crown_y, 0), base_r],
+		[Vector3(base_r * 0.6, crown_y + base_r * 0.25, base_r * 0.2), base_r * 0.72],
+		[Vector3(-base_r * 0.6, crown_y + base_r * 0.2, -base_r * 0.2), base_r * 0.68],
+		[Vector3(base_r * 0.25, crown_y + base_r * 0.5, -base_r * 0.55), base_r * 0.6],
+		[Vector3(-base_r * 0.3, crown_y + base_r * 0.55, base_r * 0.5), base_r * 0.58],
+	]
+	for i in lobes.size():
+		var pos: Vector3 = lobes[i][0]
+		var r: float = lobes[i][1]
+		var col := GameData.COLOR_TREE_LEAVES
+		if i % 2 == 1:
+			col = GameData.COLOR_TREE_LEAVES_DARK
+		var lobe := Builder.sphere(r, col)
+		lobe.position = pos
+		_visual.add_child(lobe)
 
-	Builder.collider(self, Builder.box_shape(Vector3(0.55, _trunk_height + foliage_h * 1.2, 0.55)))
+	Builder.collider(self, Builder.box_shape(Vector3(0.6, _trunk_height + base_r * 1.3, 0.6)))
 	var cs := get_child(get_child_count() - 1) as CollisionShape3D
-	cs.position = Vector3(0, (_trunk_height + foliage_h * 1.2) * 0.45, 0)
+	cs.position = Vector3(0, (_trunk_height + base_r * 1.3) * 0.45, 0)
 
 func chop(multiplier: float = 1.0, chopper: Node = null) -> float:
 	if is_empty():
@@ -94,6 +108,7 @@ func _topple() -> void:
 		return
 	falling = true
 	Sound.play("hit", 0.7)
+	FX.hit_stop(get_tree(), 0.06, 0.08)
 	freeze = false
 	var dir := Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)).normalized()
 	apply_central_impulse(dir * 1.2)

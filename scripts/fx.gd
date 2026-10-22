@@ -29,8 +29,18 @@ static func burst(parent: Node, pos: Vector3, color: Color, amount := 12, radius
 		t.set_parallel(true)
 		t.tween_property(m, "global_position", pos + dir * dist, life).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		t.tween_property(m, "scale", Vector3.ZERO, life).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.tween_property(m, "rotation", Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6)), life)
 		var timer := tree.create_timer(life + 0.05)
 		timer.timeout.connect(m.queue_free)
+
+# A brief "freeze frame" to make hits feel weighty. Uses Engine.time_scale with
+# an unscaled timer so the game resumes on its own.
+static func hit_stop(tree: SceneTree, duration := 0.06, scale := 0.05) -> void:
+	if tree == null:
+		return
+	Engine.time_scale = scale
+	var t := tree.create_timer(duration, true, false, true)
+	t.timeout.connect(func(): Engine.time_scale = 1.0)
 
 static func float_text(parent: Node, pos: Vector3, text: String, color := Color.WHITE, size := 40) -> void:
 	if parent == null:

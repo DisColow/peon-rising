@@ -174,6 +174,7 @@ func take_damage(amount: float, attacker: Node = null) -> void:
 		Sound.play("hurt")
 		if GameState.main != null and GameState.main.camera != null:
 			GameState.main.camera.shake(0.7)
+		FX.hit_stop(get_tree(), 0.04, 0.15)
 	else:
 		Sound.play("hit")
 	if attacker != null and attacker is Node3D:

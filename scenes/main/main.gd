@@ -14,6 +14,7 @@ const HudScript := preload("res://scenes/ui/hud.gd")
 const TalentUIScript := preload("res://scenes/ui/talent_tree_ui.gd")
 const PauseMenuScript := preload("res://scenes/ui/pause_menu.gd")
 const TouchUIScript := preload("res://scenes/ui/touch_ui.gd")
+const GroundShader := preload("res://shaders/ground.gdshader")
 
 var world: Node3D
 var units: Node3D
@@ -98,12 +99,13 @@ func _build_environment() -> void:
 	world.name = "World"
 	add_child(world)
 
-	# Ground.
+	# Ground (procedurally textured grass via shader).
 	var ground := StaticBody3D.new()
 	ground.name = "Ground"
 	world.add_child(ground)
-	var ground_mesh := Builder.box(Vector3(MAP_HALF * 2.0, 1.0, MAP_HALF * 2.0), GameData.COLOR_GRASS, 0.9)
+	var ground_mesh := Builder.box(Vector3(MAP_HALF * 2.0, 1.0, MAP_HALF * 2.0), GameData.COLOR_GRASS, 0.95)
 	ground_mesh.position = Vector3(0, -0.5, 0)
+	ground_mesh.material_override = _ground_mat()
 	ground.add_child(ground_mesh)
 	var gcol := Builder.collider(ground, Builder.box_shape(Vector3(MAP_HALF * 2.0, 1.0, MAP_HALF * 2.0)))
 	gcol.position = Vector3(0, -0.5, 0)
@@ -114,36 +116,67 @@ func _build_environment() -> void:
 	path.rotation_degrees = Vector3(0, 45, 0)
 	world.add_child(path)
 
-	# Sky + ambient.
+	# Sky + ambient + post-processing.
 	var env := WorldEnvironment.new()
 	var e := Environment.new()
 	var sky := Sky.new()
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.30, 0.58, 0.90)
-	sky_mat.sky_horizon_color = Color(0.72, 0.86, 0.92)
-	sky_mat.ground_bottom_color = GameData.COLOR_GRASS
-	sky_mat.ground_horizon_color = GameData.COLOR_GRASS
+	sky_mat.sky_top_color = Color(0.28, 0.52, 0.86)
+	sky_mat.sky_horizon_color = Color(0.92, 0.85, 0.70)
+	sky_mat.ground_bottom_color = Color(0.22, 0.32, 0.18)
+	sky_mat.ground_horizon_color = Color(0.60, 0.70, 0.50)
+	sky_mat.sun_angle_max = 12.0
+	sky_mat.sun_curve = 0.08
 	sky.sky_material = sky_mat
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	e.ambient_light_energy = 0.9
+	e.ambient_light_energy = 1.0
+	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	# Filmic tone mapping + gentle color grade for a vibrant cartoon look.
+	e.tonemap_mode = Environment.TONE_MAPPER_ACES
+	e.tonemap_exposure = 1.08
+	e.tonemap_white = 5.0
+	e.adjustment_enabled = true
+	e.adjustment_saturation = 1.18
+	e.adjustment_contrast = 1.03
 	e.glow_enabled = true
-	e.glow_intensity = 0.6
-	e.glow_bloom = 0.12
+	e.glow_intensity = 0.5
+	e.glow_bloom = 0.08
+	e.glow_hdr_threshold = 1.0
 	e.ssao_enabled = true
-	e.ssao_intensity = 1.4
+	e.ssao_intensity = 1.6
+	e.ssao_radius = 1.0
 	e.fog_enabled = true
-	e.fog_light_color = Color(0.72, 0.86, 0.92)
-	e.fog_density = 0.0035
+	e.fog_light_color = Color(0.82, 0.78, 0.68)
+	e.fog_density = 0.0022
 	env.environment = e
 	world.add_child(env)
 
-	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-55, -35, 0)
-	light.shadow_enabled = true
-	light.light_energy = 1.15
-	world.add_child(light)
+	# Warm key light (soft shadows) + cool fill for depth.
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-52, -38, 0)
+	sun.shadow_enabled = true
+	sun.light_color = Color(1.0, 0.95, 0.82)
+	sun.light_energy = 1.25
+	sun.shadow_blur = 0.6
+	world.add_child(sun)
+
+	var fill := DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-25, 140, 0)
+	fill.light_color = Color(0.55, 0.65, 0.95)
+	fill.light_energy = 0.35
+	fill.shadow_enabled = false
+	world.add_child(fill)
+
+func _ground_mat() -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = GroundShader
+	m.set_shader_parameter("grass", GameData.COLOR_GRASS)
+	m.set_shader_parameter("grass_light", GameData.COLOR_GRASS.lightened(0.15))
+	m.set_shader_parameter("grass_dark", GameData.COLOR_GRASS.darkened(0.18))
+	m.set_shader_parameter("dirt", GameData.COLOR_PATH)
+	return m
 
 func _build_bases() -> void:
 	# Player base near the origin.

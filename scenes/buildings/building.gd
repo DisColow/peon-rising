@@ -88,49 +88,85 @@ func _ghost_mat(color: Color) -> StandardMaterial3D:
 	return m
 
 func _build_solid_visual(root: Node3D, color: Color, s: Vector3) -> void:
+	var wood := GameData.COLOR_WOOD_STACK
+	var stone := GameData.COLOR_ROCK
+	var team_col := Color(0.25, 0.4, 0.8) if team == GameData.TEAM_PLAYER else Color(0.82, 0.24, 0.2)
 	match building_key:
 		"town_hall":
-			var base := Builder.box(Vector3(s.x, s.y * 0.55, s.z), color)
-			base.position = Vector3(0, s.y * 0.28, 0)
+			# Stone base + timber upper + gable roof + door/windows + trim.
+			var base := Builder.box(Vector3(s.x, s.y * 0.45, s.z), stone)
+			base.position = Vector3(0, s.y * 0.23, 0)
 			root.add_child(base)
-			var roof := Builder.cone(s.x * 0.75, s.y * 0.6, GameData.COLOR_WOOD_STACK)
-			roof.position = Vector3(0, s.y * 0.85, 0)
-			root.add_child(roof)
-			var door := Builder.box(Vector3(0.5, 0.9, 0.1), GameData.COLOR_WOOD_STACK)
-			door.position = Vector3(0, 0.45, s.z * 0.5)
+			var upper := Builder.box(Vector3(s.x * 0.94, s.y * 0.45, s.z * 0.94), color)
+			upper.position = Vector3(0, s.y * 0.6, 0)
+			root.add_child(upper)
+			_add_gable_roof(root, s.x * 1.05, s.y * 0.4, s.z * 1.05, wood, s.y * 0.82)
+			var door := Builder.box(Vector3(0.6, 1.0, 0.12), wood)
+			door.position = Vector3(0, 0.5, s.z * 0.5)
 			root.add_child(door)
+			for side in [-1.0, 1.0]:
+				var win := Builder.box(Vector3(0.5, 0.5, 0.08), Color(0.35, 0.55, 0.85))
+				win.position = Vector3(side * s.x * 0.25, s.y * 0.6, s.z * 0.5 + 0.02)
+				root.add_child(win)
+			var banner := Builder.box(Vector3(0.08, 0.8, 0.45), team_col)
+			banner.position = Vector3(0, s.y * 1.0, 0)
+			root.add_child(banner)
 		"farm":
-			var base := Builder.box(Vector3(s.x, s.y * 0.6, s.z), color)
-			base.position = Vector3(0, s.y * 0.3, 0)
-			root.add_child(base)
-			var roof := Builder.box(Vector3(s.x * 1.1, 0.12, s.z * 1.1), GameData.COLOR_WOOD_STACK)
-			roof.position = Vector3(0, s.y * 0.65, 0)
-			roof.rotation_degrees = Vector3(0, 0, 0)
-			root.add_child(roof)
+			# Small barn + a tilled crop field.
+			var barn := Builder.box(Vector3(s.x * 0.7, s.y * 0.6, s.z * 0.7), color)
+			barn.position = Vector3(-s.x * 0.15, s.y * 0.3, 0)
+			root.add_child(barn)
+			_add_gable_roof(root, s.x * 0.78, s.y * 0.35, s.z * 0.78, wood, s.y * 0.6)
+			var field := Builder.box(Vector3(s.x * 0.8, 0.06, s.z * 0.5), Color(0.4, 0.52, 0.22))
+			field.position = Vector3(s.x * 0.3, 0.03, s.z * 0.1)
+			root.add_child(field)
+			for i in 3:
+				var row := Builder.box(Vector3(s.x * 0.7, 0.02, 0.1), Color(0.55, 0.42, 0.2))
+				row.position = Vector3(s.x * 0.3, 0.07, -s.z * 0.12 + i * s.z * 0.12)
+				root.add_child(row)
 		"barracks":
 			var base := Builder.box(Vector3(s.x, s.y * 0.6, s.z), color)
 			base.position = Vector3(0, s.y * 0.3, 0)
 			root.add_child(base)
-			var roof := Builder.box(Vector3(s.x * 1.05, 0.16, s.z * 1.05), GameData.COLOR_WOOD_STACK)
-			roof.position = Vector3(0, s.y * 0.68, 0)
-			root.add_child(roof)
-			var banner := Builder.box(Vector3(0.08, 0.9, 0.4), Color(0.25, 0.4, 0.8) if team == GameData.TEAM_PLAYER else Color(0.8, 0.25, 0.2))
-			banner.position = Vector3(0, s.y * 0.85, 0)
+			_add_gable_roof(root, s.x * 1.05, s.y * 0.4, s.z * 1.05, wood, s.y * 0.68)
+			var banner := Builder.box(Vector3(0.1, 1.0, 0.5), team_col)
+			banner.position = Vector3(s.x * 0.1, s.y * 0.95, s.z * 0.45)
 			root.add_child(banner)
+			# Training dummy out front.
+			var dummy := Builder.cylinder(0.14, 0.9, GameData.COLOR_WOOD_STACK)
+			dummy.position = Vector3(s.x * 0.5, 0.45, s.z * 0.6)
+			root.add_child(dummy)
+			var dummy_head := Builder.sphere(0.18, GameData.COLOR_PLAYER_SKIN if team == GameData.TEAM_PLAYER else GameData.COLOR_ENEMY_SKIN)
+			dummy_head.position = Vector3(s.x * 0.5, 0.95, s.z * 0.6)
+			root.add_child(dummy_head)
 		"tower":
-			var shaft := Builder.cylinder(s.x * 0.35, s.y * 0.7, color)
-			shaft.position = Vector3(0, s.y * 0.35, 0)
+			var shaft := Builder.cylinder(s.x * 0.38, s.y * 0.75, stone)
+			shaft.position = Vector3(0, s.y * 0.38, 0)
 			root.add_child(shaft)
-			var top := Builder.cone(s.x * 0.55, s.y * 0.35, GameData.COLOR_WOOD_STACK)
-			top.position = Vector3(0, s.y * 0.85, 0)
-			root.add_child(top)
-			var crystal := Builder.sphere(0.22, Color(0.5, 0.7, 1.0))
-			crystal.position = Vector3(0, s.y * 1.02, 0)
+			var platform := Builder.cylinder(s.x * 0.55, 0.2, wood)
+			platform.position = Vector3(0, s.y * 0.78, 0)
+			root.add_child(platform)
+			var roof := Builder.cone(s.x * 0.55, s.y * 0.28, team_col)
+			roof.position = Vector3(0, s.y * 0.92, 0)
+			root.add_child(roof)
+			var crystal := Builder.sphere(0.2, Color(0.5, 0.75, 1.0))
+			crystal.position = Vector3(0, s.y * 1.04, 0)
 			root.add_child(crystal)
 		_:
 			var base := Builder.box(s, color)
 			base.position = Vector3(0, s.y * 0.5, 0)
 			root.add_child(base)
+
+# A pitched (gable) roof built from two sloped planks meeting at a ridge.
+func _add_gable_roof(root: Node3D, w: float, h: float, d: float, color: Color, base_y: float) -> void:
+	var half_w := w * 0.5
+	var slope := sqrt(h * h + half_w * half_w)
+	var angle := atan2(h, half_w)
+	for side in [-1.0, 1.0]:
+		var plank := Builder.box(Vector3(slope, 0.12, d), color)
+		plank.position = Vector3(side * half_w * 0.5, base_y + h * 0.5, 0)
+		plank.rotation.z = side * angle
+		root.add_child(plank)
 
 func _physics_process(delta: float) -> void:
 	# Grow the building from the ground during construction.
