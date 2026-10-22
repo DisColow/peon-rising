@@ -50,6 +50,17 @@ Le binaire `godot` est dans `~/bin` (export `PATH="$HOME/bin:$PATH"`).
 - **Points d'approche** : toujours viser un point *hors* de la collision du bâtiment
   (`_approach()`) sinon le péon reste collé au mur.
 
+## Release / CI (GitHub Actions)
+
+- Dépôt : `github.com/DisColow/peon-rising`.
+- `.github/workflows/build.yml` compile Windows, Linux (Steamdeck) et Android,
+  puis crée une release avec les 3 `.zip` quand on pousse un tag `v*`.
+- Pour publier : `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z`.
+- Exports testés localement (`godot --headless --export-release "Windows Desktop"` /
+  `"Linux"`). Android exige : JDK 17 (`actions/setup-java@v4`), SDK préinstallé du
+  runner (`ANDROID_HOME=/usr/local/lib/android/sdk`), `debug.keystore` généré en CI
+  (dans `.gitignore`), et `textures/vram_compression/import_etc2_astc=true`.
+
 ## Multijoueur / avenir
 
 - Toute la logique passe par des signaux `EventBus` et des groupes de nœuds
