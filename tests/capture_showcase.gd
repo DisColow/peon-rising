@@ -24,13 +24,13 @@ func _initialize() -> void:
 	ground.mesh = PlaneMesh.new()
 	ground.mesh.size = Vector2(40, 40)
 	var gmat := StandardMaterial3D.new()
-	gmat.albedo_color = Color(0.33, 0.43, 0.27)
+	gmat.albedo_color = Color(0.30, 0.34, 0.20)
 	ground.material_override = gmat
 	world.add_child(ground)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50, -35, 0)
-	sun.light_energy = 1.5
+	sun.light_energy = 1.2
 	sun.shadow_enabled = true
 	world.add_child(sun)
 	var fill := DirectionalLight3D.new()
@@ -60,8 +60,8 @@ func _initialize() -> void:
 			print("no anim '", anim_name, "'; have ", ap.get_animation_list().size())
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(2.4, 1.6, 3.4)
-	cam.transform = cam.transform.looking_at(Vector3(0, 0.9, 0), Vector3.UP)
+	cam.position = Vector3(1.9, 1.5, 2.7)
+	cam.transform = cam.transform.looking_at(Vector3(0, 1.0, 0), Vector3.UP)
 	world.add_child(cam)
 	cam.current = true
 
