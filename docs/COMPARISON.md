@@ -47,6 +47,20 @@ leur implémentation concrète dans ce projet, avec la preuve correspondante.
 | Game feel : hit-stop, particules, feedback | `scripts/fx.gd` `FX.hit_stop` + `FX.burst` | `test_game_feel.gd` (hit-stop 0.100 → 1.000, burst) |
 | Armes correctement orientées en main | convention de grip validée | `test_weapon_grip.gd` (15/15), `knight_sword.png` |
 
+## 4bis. Fidélité mesurée (proxy objectif du « pas low-poly »)
+
+`tests/test_fidelity.gd` compte les triangles et la résolution de texture des
+modèles réels (vs l'ancien monde procédural : boîtes/sphères à couleur plate,
+sans texture) :
+
+| Modèle | Triangles | Texture |
+|---|---|---|
+| Knight (personnage) | 6 952 | 1024 px |
+| Château | 5 659 | 1024 px |
+| Caserne | 4 007 | 1024 px |
+| Tour | 2 138 | 1024 px |
+| Arbre | 50 (stylisé low-poly, voulu) | 1024 px |
+
 ## 5. Plateformes
 
 | Cible | Statut |
